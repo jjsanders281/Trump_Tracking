@@ -181,15 +181,43 @@ def search_claims(
         if filters.verified_only:
             query = query.filter(models.Assessment.publish_status == "verified")
 
-    query = query.distinct()
-
-    total = query.count()
-    claims = (
-        query.order_by(models.Statement.occurred_at.desc(), models.Claim.id.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
+    if needs_assessment_join:
+        # Postgres requires ORDER BY columns in SELECT list when using DISTINCT.
+        # Use a subquery to get distinct claim IDs, then fetch full objects.
+        claim_ids_q = query.with_entities(models.Claim.id, models.Statement.occurred_at).distinct()
+        total = claim_ids_q.count()
+        id_rows = (
+            claim_ids_q
+            .order_by(models.Statement.occurred_at.desc(), models.Claim.id.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+        ordered_ids = [row[0] for row in id_rows]
+        if ordered_ids:
+            claims_unordered = (
+                db.query(models.Claim)
+                .options(
+                    selectinload(models.Claim.statement),
+                    selectinload(models.Claim.assessments),
+                    selectinload(models.Claim.sources),
+                    selectinload(models.Claim.tags),
+                )
+                .filter(models.Claim.id.in_(ordered_ids))
+                .all()
+            )
+            id_order = {cid: idx for idx, cid in enumerate(ordered_ids)}
+            claims = sorted(claims_unordered, key=lambda c: id_order[c.id])
+        else:
+            claims = []
+    else:
+        total = query.count()
+        claims = (
+            query.order_by(models.Statement.occurred_at.desc(), models.Claim.id.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
     items = [_serialize_claim(claim) for claim in claims]
 
     return schemas.ClaimSearchResponse(total=total, limit=limit, offset=offset, items=items)
