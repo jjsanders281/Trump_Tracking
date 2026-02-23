@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+*.pyo
+*.pyd
+tracker.db
+test_tracker.db
+.env
+.DS_Store
+*.egg-info/

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trump Tracking Research Database</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <h1>Trump Tracking</h1>
+      <p>
+        Evidence-first archive of public statements and verifiable claims. This MVP includes demo
+        records so the workflow and search features can be validated.
+      </p>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <h2>Search Claims</h2>
+        <div class="controls">
+          <label>
+            Keywords
+            <input id="q" type="text" placeholder="Try: healthcare, election, plan" />
+          </label>
+          <label>
+            Topic
+            <input id="topic" type="text" placeholder="Healthcare" />
+          </label>
+          <label>
+            Verdict
+            <select id="verdict">
+              <option value="">Any</option>
+              <option value="true">True</option>
+              <option value="mixed">Mixed</option>
+              <option value="misleading">Misleading</option>
+              <option value="false">False</option>
+              <option value="unverified">Unverified</option>
+              <option value="unfulfilled">Unfulfilled</option>
+              <option value="contradicted">Contradicted</option>
+            </select>
+          </label>
+          <label>
+            Start Date
+            <input id="start_date" type="date" />
+          </label>
+          <label>
+            End Date
+            <input id="end_date" type="date" />
+          </label>
+          <label>
+            Min Impact
+            <select id="min_impact">
+              <option value="">Any</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </label>
+          <label class="checkbox">
+            <input id="verified_only" type="checkbox" checked />
+            Verified only
+          </label>
+          <button id="searchBtn">Search</button>
+        </div>
+      </section>
+
+      <section class="panel metrics" id="metrics">
+        <article>
+          <p class="label">Total Claims</p>
+          <p class="value" id="totalClaims">-</p>
+        </article>
+        <article>
+          <p class="label">Verified Claims</p>
+          <p class="value" id="verifiedClaims">-</p>
+        </article>
+        <article>
+          <p class="label">Contradiction Links</p>
+          <p class="value" id="contradictionLinks">-</p>
+        </article>
+      </section>
+
+      <section class="panel">
+        <h2>Results</h2>
+        <p id="resultCount"></p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Topic</th>
+                <th>Verdict</th>
+                <th>Impact</th>
+                <th>Quote</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" id="detailPanel">
+        <h2>Claim Detail</h2>
+        <p class="muted">Select a result to inspect quote, rationale, and source links.</p>
+      </section>
+    </main>
+
+    <script src="/static/app.js" type="module"></script>
+  </body>
+</html>
