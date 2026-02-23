@@ -60,3 +60,4 @@ See:
 - `docs/backfill_targets.md`
 - `docs/automation_and_hosting.md`
 - `docs/deploy_render_neon.md`
+- `docs/AI_HANDOFF.md`
