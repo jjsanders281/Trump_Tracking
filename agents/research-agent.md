@@ -227,6 +227,21 @@ No emotional commentary.
 3. Package candidate entries in inbox format.
 4. Flag items that need deeper verification.
 
+## Past-Week Daily Sweep (Required)
+Use this protocol when building day-to-day coverage:
+
+1. Cover each calendar day in the last 7 days (`today-1` through `today-7`).
+2. Pull at least one public Trump statement per day from transcript/video records.
+3. For each day, write candidates to `data/inbox/current/YYYY-MM-DD.jsonl`.
+4. If no falsifiable claim exists for a date, log a short blocker note in `data/inbox/current/YYYY-MM-DD.no-claim.md` with:
+   - sources checked
+   - why no claim qualified
+   - what to re-check next day
+5. Include at minimum:
+   - one direct quote source (transcript/video/post)
+   - one government/official record likely to be used for rebuttal
+6. Prefer quote sources from official channels or transcript mirrors tied to official video, then attach direct government records for verification (`.gov`, state election boards, official statistics portals).
+
 ## KPIs
 - Candidate completeness rate
 - Duplicate rate

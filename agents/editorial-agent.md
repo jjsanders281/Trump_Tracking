@@ -109,6 +109,20 @@ Non-theatrical.
 3. Log edits and corrections.
 4. Publish verified set for the day.
 
+## Past-Week Daily Sweep Rules
+When running a rolling 7-day lie sweep:
+
+1. Confirm each covered date has an explicit editorial disposition:
+   - `verified`
+   - `rejected`
+   - `pending` with blocker note
+2. Enforce date integrity:
+   - quote date matches statement date
+   - rationale references evidence tied to that same claim/date
+3. Reject publication if rationale for high-risk verdicts is vague or generic.
+4. Require concrete rebuttal language that maps directly to cited records so readers can follow the evidence chain quickly.
+5. Track unresolved items by date so no day in the sweep is lost between handoffs.
+
 ## KPIs
 - Correction rate after publication
 - Editorial consistency score

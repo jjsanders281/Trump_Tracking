@@ -240,6 +240,25 @@ Issue verdict.
 3. Draft verdict/rationale.
 4. Pass to Editorial for second review.
 
+## Past-Week Daily Sweep Rules
+For day-to-day lie coverage, process each date in the last 7 days:
+
+1. Work oldest-to-newest so date gaps are visible.
+2. For each date, resolve all new candidates to one of:
+   - `verified` (evidence sufficient),
+   - `pending` (missing primary/official proof),
+   - `rejected` (non-falsifiable or out of scope).
+3. Do not leave a date silently incomplete; add a blocker note when evidence is missing.
+4. For election claims, require direct certification records before `verified`:
+   - National Archives / Electoral College records
+   - state certification or canvass records
+   - relevant court orders when litigation is cited
+5. For economy/statistics claims, require official statistical series (BLS/BEA/Fed/Census or equivalent state agency records).
+6. For `false`, `misleading`, `contradicted`, keep rationale in the required three-part format:
+   - `Evidence`
+   - `Why This Is False`
+   - `Shut Down False Argument`
+
 ## KPIs
 - Reversal rate after editorial review
 - Time-to-verdict
