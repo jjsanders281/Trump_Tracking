@@ -227,6 +227,23 @@ No emotional commentary.
 3. Package candidate entries in inbox format.
 4. Flag items that need deeper verification.
 
+## Research Coverage Logging (Required)
+Use this rule so the site can track historical coverage gaps day-by-day:
+
+1. For every date researched, create exactly one daily artifact:
+   - `data/inbox/current/YYYY-MM-DD.jsonl` when at least one candidate claim is found.
+   - `data/inbox/current/YYYY-MM-DD.no-claim.md` when research was done but no falsifiable claim qualified.
+2. Never leave a researched date without one of the two artifacts above.
+3. Keep `.no-claim.md` notes explicit:
+   - sources checked
+   - why no claim qualified
+   - what to re-check later
+4. Before starting new backfill, check `/api/research/coverage` and prioritize the `oldest_missing_dates` backlog.
+5. In handoff notes, list:
+   - date range covered
+   - dates completed (`published` or `researched_no_claim`)
+   - dates still incomplete (`intake`, `fact_checked`, `editorial_reviewed`, `missing`)
+
 ## Past-Week Daily Sweep (Required)
 Use this protocol when building day-to-day coverage:
 

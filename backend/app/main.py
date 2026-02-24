@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
+from datetime import date
 from pathlib import Path
 from typing import Optional
 
@@ -45,6 +46,32 @@ def health() -> dict[str, str]:
 @app.get("/api/dashboard/summary", response_model=schemas.DashboardSummary)
 def dashboard_summary(db: Session = Depends(get_db)) -> schemas.DashboardSummary:
     return crud.dashboard_summary(db)
+
+
+@app.get("/api/research/coverage", response_model=schemas.ResearchCoverageSummaryRead)
+def research_coverage_summary(
+    start_date: Optional[str] = Query(default=None),
+    end_date: Optional[str] = Query(default=None),
+    missing_limit: int = Query(default=45, ge=1, le=400),
+    recent_days_limit: int = Query(default=60, ge=1, le=400),
+    db: Session = Depends(get_db),
+) -> schemas.ResearchCoverageSummaryRead:
+    try:
+        parsed_start = date.fromisoformat(start_date) if start_date else None
+        parsed_end = date.fromisoformat(end_date) if end_date else None
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="start_date/end_date must use YYYY-MM-DD") from exc
+
+    try:
+        return crud.research_coverage_summary(
+            db=db,
+            start_date=parsed_start,
+            end_date=parsed_end,
+            missing_limit=missing_limit,
+            recent_days_limit=recent_days_limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/api/workflow/summary", response_model=schemas.WorkflowQueueSummary)

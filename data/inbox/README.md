@@ -4,6 +4,12 @@ The pipeline supports two ingestion modes:
 - Current pipeline (daily): `data/inbox/current/YYYY-MM-DD.jsonl`
 - Backlog pipeline (historical): `data/inbox/backlog/*.jsonl`
 
+Coverage tracking companion note:
+- If research is completed for a day but no falsifiable claim qualifies, create
+  `data/inbox/current/YYYY-MM-DD.no-claim.md`.
+- The research coverage dashboard uses these note files to distinguish
+  "researched/no-claim" days from truly missing days.
+
 Backward compatibility:
 - `data/inbox/YYYY-MM-DD.jsonl` is still read by current mode if present.
 

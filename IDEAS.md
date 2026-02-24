@@ -9,3 +9,6 @@ Add ideas here as they come up.
 - A tracker for the number of times that a particular lie had been told.
 - The Projection section, where every time trump says someone is doing something bad, its cause he is projecting.
 - Links need to be clickable to see all articles tagged with that
+- lies by day section and graphs.  Maybe Bar charts.  Make it look good.
+- Other visualations. Need to come up with ideas that are visually interesting for the home page
+- a section that is just things he has said that are just funny cause they are so dumb

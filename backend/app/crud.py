@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date, datetime, time, timedelta
+from pathlib import Path
 import re
 from typing import Optional
 
@@ -12,6 +14,26 @@ from . import models, schemas
 LIE_VERDICTS = ("false", "misleading", "contradicted")
 CURRENT_TERM_START_DATE = date(2025, 1, 20)
 CAMPAIGN_LAUNCH_DATE = date(2015, 6, 16)
+RESEARCH_COVERAGE_DEFAULT_START_DATE = CAMPAIGN_LAUNCH_DATE
+RESEARCH_LEVEL_SCORES: dict[str, int] = {
+    "missing": 0,
+    "researched_no_claim": 25,
+    "intake": 40,
+    "fact_checked": 70,
+    "editorial_reviewed": 85,
+    "published": 100,
+}
+RESEARCH_LEVEL_ORDER = (
+    "missing",
+    "researched_no_claim",
+    "intake",
+    "fact_checked",
+    "editorial_reviewed",
+    "published",
+)
+RESEARCH_COMPLETE_LEVELS = {"researched_no_claim", "published"}
+RESEARCH_IN_PROGRESS_LEVELS = {"intake", "fact_checked", "editorial_reviewed"}
+_ISO_DATE_STEM_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 TOPIC_DOSSIER_METADATA: dict[str, dict[str, str]] = {
     "2020-election-stolen": {
@@ -26,6 +48,9 @@ TOPIC_DOSSIER_METADATA: dict[str, dict[str, str]] = {
 RATIONALE_HEADING_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9 \"'()/-]{2,80}:$")
 BULLET_LINE_PATTERN = re.compile(r"^[-*•]\s+")
 _SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+INBOX_DIR = REPO_ROOT / "data" / "inbox"
 
 
 def _slugify(value: str) -> str:
@@ -200,6 +225,99 @@ def _record_revision(
             change_summary=change_summary,
         )
     )
+
+
+def _safe_percent(numerator: int, denominator: int) -> float:
+    if denominator <= 0:
+        return 0.0
+    return round((numerator / denominator) * 100, 1)
+
+
+def _iter_dates(start_date: date, end_date: date):
+    cursor = start_date
+    while cursor <= end_date:
+        yield cursor
+        cursor += timedelta(days=1)
+
+
+def _parse_exact_iso_date(label: str) -> Optional[date]:
+    trimmed = label.strip()
+    if not _ISO_DATE_STEM_PATTERN.match(trimmed):
+        return None
+    try:
+        return date.fromisoformat(trimmed)
+    except ValueError:
+        return None
+
+
+def _count_jsonl_lines(path: Path) -> int:
+    count = 0
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            for raw in handle:
+                if raw.strip():
+                    count += 1
+    except OSError:
+        return 0
+    return count
+
+
+def _load_inbox_research_markers() -> tuple[dict[date, int], set[date]]:
+    """
+    Build per-day research markers from inbox files.
+
+    candidate_counts:
+      day -> number of non-empty JSONL entries found in daily inbox files.
+    no_claim_dates:
+      day -> exists a daily `.no-claim.md` research note.
+    """
+    candidate_counts: dict[date, int] = {}
+    no_claim_dates: set[date] = set()
+
+    for directory in (INBOX_DIR / "current", INBOX_DIR / "backlog", INBOX_DIR):
+        if not directory.exists() or not directory.is_dir():
+            continue
+
+        for jsonl_file in directory.glob("*.jsonl"):
+            day = _parse_exact_iso_date(jsonl_file.stem)
+            if day is None:
+                continue
+            count = _count_jsonl_lines(jsonl_file)
+            if count <= 0:
+                continue
+            candidate_counts[day] = max(candidate_counts.get(day, 0), count)
+
+        for note_file in directory.glob("*.no-claim.md"):
+            token = note_file.name[: -len(".no-claim.md")]
+            day = _parse_exact_iso_date(token)
+            if day is not None:
+                no_claim_dates.add(day)
+
+    return candidate_counts, no_claim_dates
+
+
+def _research_level_for_day(
+    claim_count: int,
+    intake_candidate_count: int,
+    fact_checked_claim_count: int,
+    editorial_claim_count: int,
+    finalized_claim_count: int,
+    has_no_claim_note: bool,
+) -> schemas.ResearchCoverageLevel:
+    if claim_count <= 0:
+        if intake_candidate_count > 0:
+            return "intake"
+        if has_no_claim_note:
+            return "researched_no_claim"
+        return "missing"
+
+    if finalized_claim_count >= claim_count:
+        return "published"
+    if editorial_claim_count > 0:
+        return "editorial_reviewed"
+    if fact_checked_claim_count > 0:
+        return "fact_checked"
+    return "intake"
 
 
 def create_claim_bundle(db: Session, payload: schemas.ClaimBundleCreate) -> models.Claim:
@@ -962,6 +1080,163 @@ def workflow_queue_summary(db: Session) -> schemas.WorkflowQueueSummary:
         editorial=workflow_queue(db, stage="editorial", limit=1, offset=0).total,
         verified=workflow_queue(db, stage="verified", limit=1, offset=0).total,
         rejected=workflow_queue(db, stage="rejected", limit=1, offset=0).total,
+    )
+
+
+def research_coverage_summary(
+    db: Session,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    missing_limit: int = 45,
+    recent_days_limit: int = 60,
+) -> schemas.ResearchCoverageSummaryRead:
+    range_start = start_date or RESEARCH_COVERAGE_DEFAULT_START_DATE
+    range_end = end_date or datetime.utcnow().date()
+
+    if range_start > range_end:
+        raise ValueError("start_date cannot be after end_date")
+
+    range_start_dt = datetime.combine(range_start, time.min)
+    range_end_dt = datetime.combine(range_end, time.max)
+
+    claims = (
+        _claim_query_with_relations(db)
+        .join(models.Statement)
+        .filter(models.Statement.occurred_at >= range_start_dt)
+        .filter(models.Statement.occurred_at <= range_end_dt)
+        .all()
+    )
+
+    claims_by_day: dict[date, list[models.Claim]] = defaultdict(list)
+    for claim in claims:
+        claims_by_day[claim.statement.occurred_at.date()].append(claim)
+
+    inbox_candidate_counts, no_claim_dates = _load_inbox_research_markers()
+
+    daily_rows: list[schemas.ResearchDayCoverageRead] = []
+    level_breakdown = {level: 0 for level in RESEARCH_LEVEL_ORDER}
+
+    for day in _iter_dates(range_start, range_end):
+        day_claims = claims_by_day.get(day, [])
+        claim_count = len(day_claims)
+
+        fact_checked_claim_count = 0
+        editorial_claim_count = 0
+        finalized_claim_count = 0
+        verified_lie_count = 0
+        corroborating_source_count = 0
+        tier1_source_count = 0
+
+        for claim in day_claims:
+            corroborating_source_count += len(claim.sources)
+            tier1_source_count += sum(1 for source in claim.sources if source.source_tier == 1)
+
+            latest = _latest_assessment(claim.assessments)
+            if latest is None:
+                continue
+
+            fact_checked_claim_count += 1
+
+            if latest.reviewer_secondary or latest.publish_status in {"verified", "rejected"}:
+                editorial_claim_count += 1
+
+            if latest.publish_status in {"verified", "rejected"}:
+                finalized_claim_count += 1
+
+            if latest.publish_status == "verified" and latest.verdict in LIE_VERDICTS:
+                verified_lie_count += 1
+
+        intake_candidate_count = 0 if claim_count > 0 else inbox_candidate_counts.get(day, 0)
+        has_no_claim_note = bool(claim_count == 0 and intake_candidate_count == 0 and day in no_claim_dates)
+
+        level = _research_level_for_day(
+            claim_count=claim_count,
+            intake_candidate_count=intake_candidate_count,
+            fact_checked_claim_count=fact_checked_claim_count,
+            editorial_claim_count=editorial_claim_count,
+            finalized_claim_count=finalized_claim_count,
+            has_no_claim_note=has_no_claim_note,
+        )
+        level_breakdown[level] = level_breakdown.get(level, 0) + 1
+
+        display_claim_count = claim_count if claim_count > 0 else intake_candidate_count
+
+        daily_rows.append(
+            schemas.ResearchDayCoverageRead(
+                date=day,
+                level=level,
+                completion_score=RESEARCH_LEVEL_SCORES.get(level, 0),
+                claim_count=display_claim_count,
+                fact_checked_claim_count=fact_checked_claim_count,
+                editorial_claim_count=editorial_claim_count,
+                finalized_claim_count=finalized_claim_count,
+                verified_lie_count=verified_lie_count,
+                corroborating_source_count=corroborating_source_count,
+                tier1_source_count=tier1_source_count,
+                has_no_claim_note=has_no_claim_note,
+            )
+        )
+
+    total_days = len(daily_rows)
+    missing_days = sum(1 for row in daily_rows if row.level == "missing")
+    researched_days = total_days - missing_days
+    complete_days = sum(1 for row in daily_rows if row.level in RESEARCH_COMPLETE_LEVELS)
+    in_progress_days = sum(1 for row in daily_rows if row.level in RESEARCH_IN_PROGRESS_LEVELS)
+
+    oldest_missing_dates = [row.date for row in daily_rows if row.level == "missing"][:missing_limit]
+    oldest_incomplete_dates = [
+        row.date
+        for row in daily_rows
+        if row.level == "missing" or row.level in RESEARCH_IN_PROGRESS_LEVELS
+    ][:missing_limit]
+
+    recent_days = list(reversed(daily_rows))[:recent_days_limit]
+
+    monthly_rollup_raw: dict[str, dict[str, int]] = {}
+    for row in daily_rows:
+        month_key = row.date.strftime("%Y-%m")
+        bucket = monthly_rollup_raw.setdefault(
+            month_key,
+            {"total_days": 0, "researched_days": 0, "complete_days": 0, "missing_days": 0},
+        )
+        bucket["total_days"] += 1
+        if row.level != "missing":
+            bucket["researched_days"] += 1
+        if row.level in RESEARCH_COMPLETE_LEVELS:
+            bucket["complete_days"] += 1
+        if row.level == "missing":
+            bucket["missing_days"] += 1
+
+    monthly_rollup = []
+    for month_key in sorted(monthly_rollup_raw.keys(), reverse=True):
+        bucket = monthly_rollup_raw[month_key]
+        monthly_rollup.append(
+            schemas.ResearchCoverageMonthRead(
+                month=month_key,
+                total_days=bucket["total_days"],
+                researched_days=bucket["researched_days"],
+                complete_days=bucket["complete_days"],
+                missing_days=bucket["missing_days"],
+                coverage_percent=_safe_percent(bucket["researched_days"], bucket["total_days"]),
+                completion_percent=_safe_percent(bucket["complete_days"], bucket["total_days"]),
+            )
+        )
+
+    return schemas.ResearchCoverageSummaryRead(
+        range_start=range_start,
+        range_end=range_end,
+        total_days=total_days,
+        researched_days=researched_days,
+        complete_days=complete_days,
+        missing_days=missing_days,
+        in_progress_days=in_progress_days,
+        coverage_percent=_safe_percent(researched_days, total_days),
+        completion_percent=_safe_percent(complete_days, total_days),
+        level_breakdown=level_breakdown,
+        oldest_missing_dates=oldest_missing_dates,
+        oldest_incomplete_dates=oldest_incomplete_dates,
+        recent_days=recent_days,
+        monthly_rollup=monthly_rollup,
     )
 
 

@@ -60,6 +60,18 @@ const REQUIRED_RATIONALE_SECTIONS = [
   "Why This Is False:",
   "Shut Down False Argument:",
 ];
+const COVERAGE_LEVEL_LABELS = {
+  missing: "Missing",
+  researched_no_claim: "Researched (No Claim)",
+  intake: "Intake Logged",
+  fact_checked: "Fact-Checked",
+  editorial_reviewed: "Editorial Review",
+  published: "Published",
+};
+
+function coverageLevelLabel(level) {
+  return COVERAGE_LEVEL_LABELS[level] || String(level ?? "unknown");
+}
 
 function validateHighRiskRationale(verdict, rationale) {
   const normalizedVerdict = String(verdict ?? "").toLowerCase();
@@ -1124,13 +1136,15 @@ byId("detailPanel").addEventListener("click", (e) => {
 // === DASHBOARD ===
 
 async function loadDashboard() {
-  const [dashRes, wfRes] = await Promise.all([
+  const [dashRes, wfRes, coverageRes] = await Promise.all([
     fetch("/api/dashboard/summary"),
     fetch("/api/workflow/summary"),
+    fetch("/api/research/coverage"),
   ]);
   const dashboard = await dashRes.json();
   const workflow = await wfRes.json();
-  state.dashboardData = { dashboard, workflow };
+  const coverage = await coverageRes.json();
+  state.dashboardData = { dashboard, workflow, coverage };
 
   byId("queueFactCheck").textContent = workflow.fact_check;
   byId("queueEditorial").textContent = workflow.editorial;
@@ -1143,6 +1157,102 @@ async function loadDashboard() {
 
   renderBarChart("verdictBars", dashboard.verdict_breakdown, "verdict");
   renderBarChart("topicBars", dashboard.topic_breakdown, "topic");
+  renderCoverageDashboard(coverage);
+}
+
+function renderCoverageDashboard(coverage) {
+  setTextIfPresent(
+    "coverageRangeSummary",
+    `Range ${coverage.range_start} through ${coverage.range_end} (UTC dates). Backlog lists oldest unresolved days first.`,
+  );
+  setTextIfPresent("coverageTotalDays", coverage.total_days);
+  setTextIfPresent("coverageResearchedDays", coverage.researched_days);
+  setTextIfPresent("coverageMissingDays", coverage.missing_days);
+  setTextIfPresent("coverageInProgressDays", coverage.in_progress_days);
+  setTextIfPresent("coverageCompleteDays", coverage.complete_days);
+  setTextIfPresent(
+    "coveragePercentPair",
+    `${coverage.coverage_percent}% / ${coverage.completion_percent}%`,
+  );
+
+  const levelBreakdown = {};
+  for (const [level, count] of Object.entries(coverage.level_breakdown || {})) {
+    levelBreakdown[coverageLevelLabel(level)] = count;
+  }
+  renderBarChart("coverageLevelBars", levelBreakdown, null);
+
+  renderCoverageDateList("coverageMissingList", coverage.oldest_missing_dates || []);
+  renderCoverageDateList("coverageIncompleteList", coverage.oldest_incomplete_dates || []);
+  renderCoverageRecentDays(coverage.recent_days || []);
+  renderCoverageMonthlyRollup(coverage.monthly_rollup || []);
+}
+
+function renderCoverageDateList(containerId, dates) {
+  const container = byId(containerId);
+  if (!container) return;
+
+  if (!dates.length) {
+    container.innerHTML = '<li class="muted">No dates in this category.</li>';
+    return;
+  }
+
+  container.innerHTML = dates
+    .map(
+      (day) => `<li>
+        <button type="button" class="coverage-date-btn" data-coverage-date="${escapeHtml(day)}">
+          ${escapeHtml(day)}
+        </button>
+      </li>`,
+    )
+    .join("");
+}
+
+function renderCoverageRecentDays(days) {
+  const body = byId("coverageRecentBody");
+  if (!body) return;
+
+  if (!days.length) {
+    body.innerHTML = '<tr><td colspan="6" class="muted">No recent day data.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = days
+    .map((row) => `<tr>
+      <td>
+        <button type="button" class="coverage-date-btn" data-coverage-date="${escapeHtml(row.date)}">
+          ${escapeHtml(row.date)}
+        </button>
+      </td>
+      <td>${escapeHtml(coverageLevelLabel(row.level))}</td>
+      <td>${escapeHtml(row.claim_count)}</td>
+      <td>${escapeHtml(row.fact_checked_claim_count)}</td>
+      <td>${escapeHtml(row.finalized_claim_count)}</td>
+      <td>${escapeHtml(row.verified_lie_count)}</td>
+    </tr>`)
+    .join("");
+}
+
+function renderCoverageMonthlyRollup(months) {
+  const body = byId("coverageMonthlyBody");
+  if (!body) return;
+
+  const visibleMonths = months.slice(0, 24);
+  if (!visibleMonths.length) {
+    body.innerHTML = '<tr><td colspan="7" class="muted">No monthly rollup data.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = visibleMonths
+    .map((month) => `<tr>
+      <td>${escapeHtml(month.month)}</td>
+      <td>${escapeHtml(month.total_days)}</td>
+      <td>${escapeHtml(month.researched_days)}</td>
+      <td>${escapeHtml(month.missing_days)}</td>
+      <td>${escapeHtml(month.complete_days)}</td>
+      <td>${escapeHtml(month.coverage_percent)}%</td>
+      <td>${escapeHtml(month.completion_percent)}%</td>
+    </tr>`)
+    .join("");
 }
 
 function renderBarChart(containerId, dataObj, clickField) {
@@ -1156,8 +1266,11 @@ function renderBarChart(containerId, dataObj, clickField) {
   container.innerHTML = entries
     .map(([label, count]) => {
       const pct = Math.round((count / maxVal) * 100);
-      const dataAttr = clickField ? ` data-filter-field="${escapeHtml(clickField)}" data-filter-value="${escapeHtml(label)}"` : "";
-      return `<div class="bar-row bar-row--clickable" tabindex="0" role="button"${dataAttr}>
+      const isClickable = Boolean(clickField);
+      const dataAttr = isClickable ? ` data-filter-field="${escapeHtml(clickField)}" data-filter-value="${escapeHtml(label)}"` : "";
+      const actionAttrs = isClickable ? ' tabindex="0" role="button"' : "";
+      const rowClass = isClickable ? "bar-row bar-row--clickable" : "bar-row";
+      return `<div class="${rowClass}"${actionAttrs}${dataAttr}>
       <span class="bar-row__label">${escapeHtml(label)}</span>
       <div class="bar-row__track">
         <div class="bar-row__fill" style="width:${pct}%"></div>
@@ -1197,6 +1310,27 @@ for (const containerId of ["verdictBars", "topicBars"]) {
     navigateToSearchWithFilter(row.dataset.filterField, row.dataset.filterValue);
   });
 }
+
+function navigateToSearchForDate(dateValue) {
+  clearHashRoute();
+  byId("q").value = "";
+  byId("topic").value = "";
+  byId("verdict").value = "";
+  byId("start_date").value = dateValue;
+  byId("end_date").value = dateValue;
+  byId("min_impact").value = "";
+  byId("verified_only").checked = false;
+  switchTab("search");
+  runSearch();
+}
+
+byId("tabDashboard").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-coverage-date]");
+  if (!btn) return;
+  const dateValue = btn.dataset.coverageDate;
+  if (!dateValue) return;
+  navigateToSearchForDate(dateValue);
+});
 
 // === INTAKE ===
 

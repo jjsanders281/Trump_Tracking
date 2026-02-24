@@ -224,6 +224,10 @@ a:focus-visible {
   grid-template-columns: repeat(4, 1fr);
 }
 
+.metrics--6col {
+  grid-template-columns: repeat(6, 1fr);
+}
+
 .metric-link {
   cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
@@ -691,6 +695,10 @@ tbody tr:hover {
   grid-column: auto;
 }
 
+.panel--research-coverage {
+  grid-column: 1 / -1 !important;
+}
+
 .layout--single {
   grid-template-columns: 1fr;
   max-width: 900px;
@@ -753,6 +761,47 @@ tbody tr:hover {
   min-width: 32px;
   font-size: 0.84rem;
   font-weight: 600;
+}
+
+.panel-subhead {
+  margin: 1rem 0 0.55rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line-light);
+  font-size: 0.96rem;
+}
+
+.coverage-two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.coverage-date-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.coverage-date-list li {
+  margin-bottom: 0.35rem;
+}
+
+.coverage-date-btn {
+  border: 1px solid var(--line-light);
+  background: #fff;
+  color: var(--accent);
+  border-radius: 2px;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.82rem;
+}
+
+.coverage-date-btn:hover {
+  background: #eef3ff;
+}
+
+.coverage-table th,
+.coverage-table td {
+  font-size: 0.83rem;
+  vertical-align: middle;
 }
 
 /* === INTAKE FORM === */
@@ -1168,6 +1217,10 @@ tbody tr:hover {
   .wiki-home__stats--5 {
     grid-template-columns: repeat(3, 1fr);
   }
+
+  .metrics--6col {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 900px) {
@@ -1223,7 +1276,15 @@ tbody tr:hover {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .metrics--6col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .layout--dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .coverage-two-col {
     grid-template-columns: 1fr;
   }
 

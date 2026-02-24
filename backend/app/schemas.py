@@ -8,6 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Verdict = Literal["true", "mixed", "misleading", "false", "unverified", "unfulfilled", "contradicted"]
 PublishStatus = Literal["pending", "verified", "rejected"]
 WorkflowStage = Literal["fact_check", "editorial", "verified", "rejected"]
+ResearchCoverageLevel = Literal[
+    "missing",
+    "researched_no_claim",
+    "intake",
+    "fact_checked",
+    "editorial_reviewed",
+    "published",
+]
 
 HIGH_RISK_VERDICTS = {"false", "misleading", "contradicted"}
 HIGH_RISK_RATIONALE_MIN_LENGTH = 240
@@ -216,6 +224,47 @@ class LieTrackerSummary(BaseModel):
     since_campaign_launch: int
     term_start_date: date
     campaign_launch_date: date
+
+
+class ResearchDayCoverageRead(BaseModel):
+    date: date
+    level: ResearchCoverageLevel
+    completion_score: int = Field(ge=0, le=100)
+    claim_count: int = Field(ge=0)
+    fact_checked_claim_count: int = Field(ge=0)
+    editorial_claim_count: int = Field(ge=0)
+    finalized_claim_count: int = Field(ge=0)
+    verified_lie_count: int = Field(ge=0)
+    corroborating_source_count: int = Field(ge=0)
+    tier1_source_count: int = Field(ge=0)
+    has_no_claim_note: bool = False
+
+
+class ResearchCoverageMonthRead(BaseModel):
+    month: str
+    total_days: int = Field(ge=0)
+    researched_days: int = Field(ge=0)
+    complete_days: int = Field(ge=0)
+    missing_days: int = Field(ge=0)
+    coverage_percent: float = Field(ge=0, le=100)
+    completion_percent: float = Field(ge=0, le=100)
+
+
+class ResearchCoverageSummaryRead(BaseModel):
+    range_start: date
+    range_end: date
+    total_days: int = Field(ge=0)
+    researched_days: int = Field(ge=0)
+    complete_days: int = Field(ge=0)
+    missing_days: int = Field(ge=0)
+    in_progress_days: int = Field(ge=0)
+    coverage_percent: float = Field(ge=0, le=100)
+    completion_percent: float = Field(ge=0, le=100)
+    level_breakdown: dict[str, int]
+    oldest_missing_dates: list[date]
+    oldest_incomplete_dates: list[date]
+    recent_days: list[ResearchDayCoverageRead]
+    monthly_rollup: list[ResearchCoverageMonthRead]
 
 
 class DashboardSummary(BaseModel):

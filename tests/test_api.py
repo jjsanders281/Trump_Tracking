@@ -184,6 +184,80 @@ def test_dashboard_summary_includes_lie_tracker(client: TestClient) -> None:
     assert lie_tracker["campaign_launch_date"] == "2015-06-16"
 
 
+def test_research_coverage_summary_endpoint(client: TestClient) -> None:
+    response = client.get("/api/research/coverage")
+    assert response.status_code == 200
+    payload = response.json()
+
+    expected_keys = {
+        "range_start",
+        "range_end",
+        "total_days",
+        "researched_days",
+        "complete_days",
+        "missing_days",
+        "in_progress_days",
+        "coverage_percent",
+        "completion_percent",
+        "level_breakdown",
+        "oldest_missing_dates",
+        "oldest_incomplete_dates",
+        "recent_days",
+        "monthly_rollup",
+    }
+    assert expected_keys <= set(payload.keys())
+    assert payload["range_start"] == "2015-06-16"
+    assert payload["total_days"] >= 1
+    assert payload["missing_days"] >= 0
+    assert payload["researched_days"] >= 0
+    assert payload["complete_days"] >= 0
+
+    level_breakdown = payload["level_breakdown"]
+    for key in [
+        "missing",
+        "researched_no_claim",
+        "intake",
+        "fact_checked",
+        "editorial_reviewed",
+        "published",
+    ]:
+        assert key in level_breakdown
+        assert isinstance(level_breakdown[key], int)
+        assert level_breakdown[key] >= 0
+
+    assert isinstance(payload["oldest_missing_dates"], list)
+    assert isinstance(payload["oldest_incomplete_dates"], list)
+    assert isinstance(payload["recent_days"], list)
+    assert isinstance(payload["monthly_rollup"], list)
+
+
+def test_research_coverage_supports_range_filters(client: TestClient) -> None:
+    response = client.get(
+        "/api/research/coverage",
+        params={
+            "start_date": "2025-02-01",
+            "end_date": "2025-02-03",
+            "missing_limit": 5,
+            "recent_days_limit": 5,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload["range_start"] == "2025-02-01"
+    assert payload["range_end"] == "2025-02-03"
+    assert payload["total_days"] == 3
+    assert payload["researched_days"] >= 1
+    assert len(payload["oldest_missing_dates"]) <= 5
+    assert len(payload["recent_days"]) <= 5
+
+    invalid_response = client.get(
+        "/api/research/coverage",
+        params={"start_date": "2025-02-04", "end_date": "2025-02-03"},
+    )
+    assert invalid_response.status_code == 400
+
+
 def teardown_module() -> None:
     db_file = Path("test_tracker.db")
     if db_file.exists():
