@@ -18,7 +18,7 @@ from .seed import seed_demo_data
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
-    if os.getenv("SEED_SAMPLE_DATA", "true").lower() in {"1", "true", "yes"}:
+    if os.getenv("SEED_SAMPLE_DATA", "false").lower() in {"1", "true", "yes"}:
         with Session(engine) as db:
             seed_demo_data(db)
     yield
