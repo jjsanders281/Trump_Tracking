@@ -351,6 +351,12 @@ tbody tr:hover {
   padding-left: 1.1rem;
 }
 
+.source-note {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .rationale-stack {
   display: grid;
   gap: 0.55rem;

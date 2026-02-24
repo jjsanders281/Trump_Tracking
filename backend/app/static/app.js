@@ -283,7 +283,7 @@ function renderDetail(item) {
   const sources = item.sources
     .map(
       (source) =>
-        `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.publisher)}</a> (Tier ${escapeHtml(source.source_tier)})${source.is_primary ? " - primary" : ""}</li>`,
+        `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.publisher)}</a> (Tier ${escapeHtml(source.source_tier)})${source.is_primary ? " - primary" : ""}${source.notes ? `<div class="source-note">${escapeHtml(source.notes)}</div>` : ""}</li>`,
     )
     .join("");
 
@@ -947,7 +947,7 @@ function renderQueueCardDetail(item) {
   const sources = item.sources
     .map(
       (s) =>
-        `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.publisher)}</a> (Tier ${escapeHtml(s.source_tier)})${s.is_primary ? " - primary" : ""}</li>`,
+        `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.publisher)}</a> (Tier ${escapeHtml(s.source_tier)})${s.is_primary ? " - primary" : ""}${s.notes ? `<div class="source-note">${escapeHtml(s.notes)}</div>` : ""}</li>`,
     )
     .join("");
 
