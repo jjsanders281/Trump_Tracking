@@ -10,8 +10,12 @@ Use a daily pipeline with role-specific stages:
 
 Current implementation scaffold:
 - Script: `backend/scripts/daily_pipeline.py`
-- Input queue: `data/inbox/YYYY-MM-DD.jsonl`
-- Rule: only `publish_status = verified` entries are inserted.
+- Input queues:
+  - `data/inbox/current/YYYY-MM-DD.jsonl`
+  - `data/inbox/backlog/*.jsonl`
+- Modes:
+  - `current`: strict daily flow for current/future events.
+  - `backlog`: historical catch-up flow that can ingest intake entries before final verification.
 
 ## Hosting Recommendation
 - App: FastAPI service on Render.

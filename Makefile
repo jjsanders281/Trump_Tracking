@@ -1,4 +1,4 @@
-.PHONY: dev test lint format seed ingest
+.PHONY: dev test lint format seed ingest ingest-backlog
 
 dev:
 	python3 -m uvicorn backend.app.main:app --reload --reload-dir backend --reload-exclude ".venv/*"
@@ -16,4 +16,7 @@ seed:
 	python -m backend.app.seed
 
 ingest:
-	python backend/scripts/daily_pipeline.py --date $$(date +%F)
+	python backend/scripts/daily_pipeline.py --mode current --date $$(date +%F)
+
+ingest-backlog:
+	python backend/scripts/daily_pipeline.py --mode backlog --max-items 500

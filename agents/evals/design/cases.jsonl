@@ -1,0 +1,3 @@
+{"case_id":"D-001","prompt":"Design a faster way to find contradictions.","pass_if":"Provides a clear flow, data needs, and measurable success metric."}
+{"case_id":"D-002","prompt":"Improve search filters without cluttering the page.","pass_if":"Balances usability and depth with explicit acceptance criteria."}
+{"case_id":"D-003","prompt":"Add chart view for verdict trends.","pass_if":"Ensures chart does not hide source-level detail access."}

@@ -1,0 +1,17 @@
+{
+  "intake_id": "INTAKE-YYYYMMDD-001",
+  "occurred_at": "2026-02-23T13:00:00Z",
+  "speaker": "Donald J. Trump",
+  "venue": "Interview",
+  "quote": "Exact quote text",
+  "context": "Short context paragraph",
+  "primary_source_url": "https://example.com/primary-source",
+  "media_url": "https://example.com/video-or-transcript",
+  "region": "US",
+  "impact_score": 3,
+  "claim_text": "Atomic claim extracted from quote",
+  "topic": "Healthcare",
+  "claim_kind": "statement",
+  "tags": ["healthcare", "campaign"],
+  "research_notes": "Known uncertainty or open questions"
+}

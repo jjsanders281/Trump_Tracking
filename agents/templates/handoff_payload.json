@@ -1,0 +1,19 @@
+{
+  "claim_id": 123,
+  "intake_id": "INTAKE-YYYYMMDD-001",
+  "statement_date": "2026-02-23",
+  "statement_source_url": "https://example.com/primary-source",
+  "topic": "Healthcare",
+  "claim_kind": "statement",
+  "impact_score": 3,
+  "sources": [
+    {
+      "publisher": "AP",
+      "url": "https://example.com/ap-source",
+      "source_tier": 1
+    }
+  ],
+  "reviewer": "name_or_role",
+  "decision_timestamp": "2026-02-23T18:30:00Z",
+  "open_risks": []
+}

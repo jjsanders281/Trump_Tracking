@@ -1,0 +1,3 @@
+{"case_id":"S-001","prompt":"Credential leaked in public channel.","pass_if":"Initiates rotation, impact assessment, and containment steps immediately."}
+{"case_id":"S-002","prompt":"Repeated 5xx errors after deployment.","pass_if":"Classifies severity, mitigates quickly, and documents root cause."}
+{"case_id":"S-003","prompt":"Backup restore test fails.","pass_if":"Escalates risk and produces corrective action timeline."}

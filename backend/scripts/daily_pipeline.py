@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, Optional
 
 from backend.app.crud import create_claim_bundle
 from backend.app.db import SessionLocal
@@ -15,9 +15,13 @@ from backend.app.schemas import AssessmentCreate, ClaimBundleCreate, ClaimCreate
 REPO_ROOT = Path(__file__).resolve().parents[2]
 INBOX_DIR = REPO_ROOT / "data" / "inbox"
 
+PipelineMode = Literal["current", "backlog"]
+
 
 @dataclass
 class PipelineStats:
+    mode: PipelineMode
+    files_scanned: int = 0
     loaded: int = 0
     accepted: int = 0
     rejected: int = 0
@@ -27,13 +31,12 @@ class PipelineStats:
 class ResearchAgent:
     """Collect and normalize raw candidate records into canonical dicts."""
 
-    def load_candidates(self, date_str: str) -> list[dict[str, Any]]:
-        inbox_file = INBOX_DIR / f"{date_str}.jsonl"
-        if not inbox_file.exists():
+    def _load_file(self, path: Path) -> list[dict[str, Any]]:
+        if not path.exists() or not path.is_file():
             return []
 
         items: list[dict[str, Any]] = []
-        with inbox_file.open("r", encoding="utf-8") as handle:
+        with path.open("r", encoding="utf-8") as handle:
             for raw_line in handle:
                 line = raw_line.strip()
                 if not line:
@@ -41,36 +44,85 @@ class ResearchAgent:
                 items.append(json.loads(line))
         return items
 
+    def load_candidates(
+        self,
+        mode: PipelineMode,
+        date_str: str,
+        batch_file: Optional[str],
+        max_items: Optional[int],
+    ) -> tuple[list[dict[str, Any]], int]:
+        files: list[Path] = []
+
+        if mode == "current":
+            files.append(INBOX_DIR / "current" / f"{date_str}.jsonl")
+            # Backward compatibility with older inbox layout.
+            files.append(INBOX_DIR / f"{date_str}.jsonl")
+        else:
+            backlog_dir = INBOX_DIR / "backlog"
+            if batch_file:
+                files.append(backlog_dir / batch_file)
+            elif backlog_dir.exists():
+                files.extend(sorted(backlog_dir.glob("*.jsonl")))
+
+        deduped_files = []
+        seen = set()
+        for file_path in files:
+            key = str(file_path.resolve()) if file_path.exists() else str(file_path)
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped_files.append(file_path)
+
+        items: list[dict[str, Any]] = []
+        for file_path in deduped_files:
+            items.extend(self._load_file(file_path))
+            if max_items is not None and len(items) >= max_items:
+                items = items[:max_items]
+                break
+
+        return items, len(deduped_files)
+
 
 class FactCheckAgent:
     """Applies baseline validation before entries can be persisted."""
 
-    required_fields = {
+    common_required_fields = {
         "occurred_at",
         "quote",
         "venue",
         "primary_source_url",
         "claim_text",
         "topic",
-        "sources",
-        "assessment",
     }
 
-    def validate(self, item: dict[str, Any]) -> tuple[bool, str]:
-        missing = [field for field in self.required_fields if field not in item]
+    def validate(self, item: dict[str, Any], mode: PipelineMode) -> tuple[bool, str]:
+        missing = [field for field in self.common_required_fields if field not in item]
         if missing:
             return False, f"Missing fields: {', '.join(sorted(missing))}"
 
         sources = item.get("sources", [])
-        if not isinstance(sources, list) or not sources:
-            return False, "At least one corroborating source is required"
+        if sources is None:
+            sources = []
+        if not isinstance(sources, list):
+            return False, "sources must be a list"
 
-        assessment = item.get("assessment", {})
-        if assessment.get("publish_status") != "verified":
-            return False, "Only verified entries are published in this pipeline"
+        assessment = item.get("assessment")
 
-        if not any(source.get("source_tier", 3) <= 2 for source in sources):
-            return False, "At least one source must be tier 1 or tier 2"
+        if mode == "current":
+            if not sources:
+                return False, "Current pipeline requires corroborating sources"
+            if not any(source.get("source_tier", 3) <= 2 for source in sources):
+                return False, "Current pipeline requires at least one tier 1 or tier 2 source"
+            if not assessment:
+                return False, "Current pipeline requires an assessment object"
+            if assessment.get("publish_status") not in {"pending", "verified"}:
+                return False, "Current pipeline accepts assessment status pending or verified"
+            return True, "ok"
+
+        # Backlog mode: allow intake-only entries (no assessment yet), but if assessment
+        # is present it must use a valid publish status.
+        if assessment and assessment.get("publish_status") not in {"pending", "verified", "rejected"}:
+            return False, "Backlog assessment publish_status must be pending, verified, or rejected"
 
         return True, "ok"
 
@@ -98,8 +150,10 @@ class DatabaseAgent:
             tags=item.get("tags", []),
         )
 
-        sources = [SourceCreate(**source) for source in item["sources"]]
-        assessment = AssessmentCreate(**item["assessment"])
+        sources = [SourceCreate(**source) for source in item.get("sources", [])]
+
+        raw_assessment = item.get("assessment")
+        assessment = AssessmentCreate(**raw_assessment) if raw_assessment else None
 
         return ClaimBundleCreate(statement=statement, claim=claim, sources=sources, assessment=assessment)
 
@@ -118,12 +172,10 @@ class DatabaseAgent:
 
 class PipelineOrchestrator:
     """
-    Role-based orchestration that can later be split into dedicated AI agents.
+    Role-based orchestration that supports two operational modes:
 
-    Current role mapping:
-    - ResearchAgent: ingest raw candidate records
-    - FactCheckAgent: enforce verification rules
-    - DatabaseAgent: persist verified entries
+    - current: daily intake for current/future events, stricter and faster publication
+    - backlog: historical catch-up where intake without full assessment is allowed
     """
 
     def __init__(self) -> None:
@@ -131,15 +183,28 @@ class PipelineOrchestrator:
         self.fact_check_agent = FactCheckAgent()
         self.database_agent = DatabaseAgent()
 
-    def run(self, date_str: str, dry_run: bool = False) -> PipelineStats:
-        stats = PipelineStats()
+    def run(
+        self,
+        mode: PipelineMode,
+        date_str: str,
+        batch_file: Optional[str],
+        max_items: Optional[int],
+        dry_run: bool = False,
+    ) -> PipelineStats:
+        stats = PipelineStats(mode=mode)
 
-        raw_items = self.research_agent.load_candidates(date_str)
+        raw_items, files_scanned = self.research_agent.load_candidates(
+            mode=mode,
+            date_str=date_str,
+            batch_file=batch_file,
+            max_items=max_items,
+        )
+        stats.files_scanned = files_scanned
         stats.loaded = len(raw_items)
 
         accepted: list[dict[str, Any]] = []
         for item in raw_items:
-            ok, reason = self.fact_check_agent.validate(item)
+            ok, reason = self.fact_check_agent.validate(item, mode)
             if not ok:
                 stats.rejected += 1
                 print(f"REJECTED: {reason} | quote={item.get('quote', '')[:80]}")
@@ -152,11 +217,28 @@ class PipelineOrchestrator:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run daily verified-entry ingestion pipeline")
+    parser = argparse.ArgumentParser(description="Run ingestion pipeline for current or backlog flows")
+    parser.add_argument(
+        "--mode",
+        choices=["current", "backlog"],
+        default="current",
+        help="Pipeline mode: current (daily) or backlog (historical catch-up)",
+    )
     parser.add_argument(
         "--date",
         default=datetime.utcnow().strftime("%Y-%m-%d"),
-        help="Date key for inbox file (YYYY-MM-DD)",
+        help="Date key for current-mode inbox file (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--batch-file",
+        default=None,
+        help="Backlog mode: optional file name under data/inbox/backlog/",
+    )
+    parser.add_argument(
+        "--max-items",
+        type=int,
+        default=None,
+        help="Optional cap for large backlog runs",
     )
     parser.add_argument(
         "--dry-run",
@@ -169,13 +251,21 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     orchestrator = PipelineOrchestrator()
-    stats = orchestrator.run(date_str=args.date, dry_run=args.dry_run)
+    stats = orchestrator.run(
+        mode=args.mode,
+        date_str=args.date,
+        batch_file=args.batch_file,
+        max_items=args.max_items,
+        dry_run=args.dry_run,
+    )
 
     print("Pipeline run complete")
-    print(f"  loaded:   {stats.loaded}")
-    print(f"  accepted: {stats.accepted}")
-    print(f"  rejected: {stats.rejected}")
-    print(f"  inserted: {stats.inserted}")
+    print(f"  mode:         {stats.mode}")
+    print(f"  files_scanned:{stats.files_scanned}")
+    print(f"  loaded:       {stats.loaded}")
+    print(f"  accepted:     {stats.accepted}")
+    print(f"  rejected:     {stats.rejected}")
+    print(f"  inserted:     {stats.inserted}")
 
 
 if __name__ == "__main__":

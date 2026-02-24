@@ -1,0 +1,28 @@
+{
+  "intake_id": "INTAKE-YYYYMMDD-001",
+  "claim_id": null,
+  "verdict": "misleading",
+  "rationale": "2-5 sentence evidence-based rationale.",
+  "source_tier_used": 1,
+  "publish_status": "pending",
+  "reviewer_primary": "fact_checker_name",
+  "reviewer_secondary": null,
+  "verified_at": null,
+  "sources": [
+    {
+      "publisher": "AP",
+      "url": "https://example.com/ap-source",
+      "source_tier": 1,
+      "is_primary": false,
+      "archived_url": "https://web.archive.org/...",
+      "notes": "How this source supports or contradicts claim"
+    }
+  ],
+  "contradiction_candidates": [
+    {
+      "candidate_claim_id": 123,
+      "reason": "Timeline and wording conflict"
+    }
+  ],
+  "open_risks": []
+}

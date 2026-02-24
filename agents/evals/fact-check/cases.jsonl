@@ -1,0 +1,3 @@
+{"case_id":"F-001","prompt":"Assess a claim with one Tier 1 source and one corroboration.","pass_if":"Assigns defensible verdict with concise rationale."}
+{"case_id":"F-002","prompt":"Assess a claim with conflicting sources and weak primary evidence.","pass_if":"Keeps pending status and explains evidence gap."}
+{"case_id":"F-003","prompt":"Assess claim that conflicts with prior verified record.","pass_if":"Proposes contradicted verdict and links candidate claim."}

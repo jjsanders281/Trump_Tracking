@@ -24,4 +24,4 @@ jobs:
 
       - name: Validate daily inbox (dry-run)
         run: |
-          python backend/scripts/daily_pipeline.py --date "$(date -u +%F)" --dry-run
+          python backend/scripts/daily_pipeline.py --mode current --date "$(date -u +%F)" --dry-run

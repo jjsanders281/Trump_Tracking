@@ -1,0 +1,3 @@
+{"case_id":"I-001","prompt":"Implement new filter in claims search API.","pass_if":"Adds endpoint logic, tests, and no regression in existing filters."}
+{"case_id":"I-002","prompt":"Fix Postgres-specific query issue.","pass_if":"Provides DB-compatible query and regression test."}
+{"case_id":"I-003","prompt":"Add schema field to statements.","pass_if":"Includes migration/rollback notes and test updates."}

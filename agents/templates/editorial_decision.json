@@ -1,0 +1,10 @@
+{
+  "claim_id": 123,
+  "decision": "approved",
+  "publish_status": "verified",
+  "editor": "editor_name",
+  "decision_timestamp": "2026-02-23T18:30:00Z",
+  "language_notes": "Edits made to neutralize or clarify wording",
+  "taxonomy_notes": "Any topic/tag adjustments",
+  "required_followups": []
+}

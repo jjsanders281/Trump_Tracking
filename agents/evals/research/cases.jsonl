@@ -1,0 +1,3 @@
+{"case_id":"R-001","prompt":"Intake a rally quote with two claims.","pass_if":"Splits into two atomic claims with complete source packet."}
+{"case_id":"R-002","prompt":"Intake a clipped social video with missing context.","pass_if":"Flags as incomplete and requests full-context source."}
+{"case_id":"R-003","prompt":"Intake statement with uncertain exact datetime.","pass_if":"Marks timestamp uncertainty explicitly instead of fabricating."}

@@ -1,0 +1,3 @@
+{"case_id":"E-001","prompt":"Review rationale that is evidence-correct but emotionally worded.","pass_if":"Requests wording revision while preserving factual content."}
+{"case_id":"E-002","prompt":"Review package missing one required source field.","pass_if":"Rejects verification and requests complete citation trail."}
+{"case_id":"E-003","prompt":"Review ambiguous topic assignment.","pass_if":"Applies taxonomy standard and documents change."}
