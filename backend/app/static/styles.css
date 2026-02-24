@@ -20,6 +20,17 @@
   --v-false-text: #8f1d1d;
   --v-unknown-bg: #ebe7dd;
   --v-unknown-text: #4c473f;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.25rem;
 }
 
 * {
@@ -31,7 +42,7 @@ body {
   font-family: "Noto Sans", "Segoe UI", Tahoma, sans-serif;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.45;
+  line-height: 1.55;
 }
 
 .wiki-masthead {
@@ -69,7 +80,7 @@ body {
 }
 
 .wiki-masthead__search input {
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* === LAYOUT === */
@@ -86,7 +97,7 @@ body {
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 1rem;
   box-shadow: none;
 }
@@ -94,7 +105,7 @@ body {
 .panel h2 {
   margin-top: 0;
   font-family: "Noto Serif", Georgia, serif;
-  font-size: 1.2rem;
+  font-size: var(--text-lg);
   letter-spacing: 0;
 }
 
@@ -120,7 +131,7 @@ body {
 }
 
 #resultCount {
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
   color: var(--muted);
   margin-top: -0.25rem;
 }
@@ -137,7 +148,7 @@ body {
 label {
   display: grid;
   gap: 0.35rem;
-  font-size: 0.86rem;
+  font-size: var(--text-md);
   color: var(--muted);
 }
 
@@ -145,7 +156,7 @@ input,
 select,
 button {
   font: inherit;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   padding: 0.55rem 0.65rem;
   background: #fff;
@@ -153,7 +164,7 @@ button {
 
 textarea {
   font: inherit;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   padding: 0.55rem 0.65rem;
   resize: vertical;
@@ -203,7 +214,7 @@ a:focus-visible {
 
 .metrics article {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.75rem;
   background: #fff;
 }
@@ -211,7 +222,7 @@ a:focus-visible {
 .metrics .label {
   margin: 0;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
 }
 
 .metrics .value {
@@ -303,10 +314,10 @@ tbody tr:hover {
 .badge {
   display: inline-block;
   padding: 0.24rem 0.56rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--v-unknown-bg);
   color: var(--v-unknown-text);
-  font-size: 0.76rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
@@ -353,7 +364,7 @@ tbody tr:hover {
 
 .claim-row-quote {
   margin-top: 0.22rem;
-  font-size: 0.84rem;
+  font-size: var(--text-sm);
 }
 
 .detail-block {
@@ -375,7 +386,7 @@ tbody tr:hover {
 
 .source-note {
   margin-top: 0.2rem;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 
@@ -386,14 +397,14 @@ tbody tr:hover {
 
 .rationale-section {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0.55rem 0.65rem;
   background: #fff;
 }
 
 .rationale-section h4 {
   margin: 0 0 0.3rem;
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--muted);
@@ -410,7 +421,7 @@ tbody tr:hover {
 
 .rationale-text {
   white-space: pre-line;
-  font-size: 0.92rem;
+  font-size: var(--text-md);
   line-height: 1.5;
 }
 
@@ -425,7 +436,7 @@ tbody tr:hover {
 .wiki-mainpage__intro {
   border: 1px solid var(--line-light);
   background: #f8f9fa;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
   margin-bottom: 0.75rem;
 }
@@ -449,7 +460,7 @@ tbody tr:hover {
 
 .mp-box {
   border: 1px solid var(--line);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: var(--panel);
   padding: 0.75rem 1rem 0.9rem;
 }
@@ -458,7 +469,7 @@ tbody tr:hover {
   margin: 0 -1rem 0.55rem;
   padding: 0.33rem 1rem 0.38rem;
   font-family: "Noto Serif", Georgia, serif;
-  font-size: 1.02rem;
+  font-size: var(--text-md);
   border-bottom: 1px solid var(--line);
 }
 
@@ -535,7 +546,7 @@ tbody tr:hover {
 .mp-featured h3 {
   margin: 0 0 0.4rem;
   font-family: "Noto Serif", Georgia, serif;
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
 }
 
 .mp-featured p {
@@ -544,12 +555,12 @@ tbody tr:hover {
 
 .mp-featured__meta {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
 .mp-on-this-day__date {
   margin: 0 0 0.45rem;
-  font-size: 0.92rem;
+  font-size: var(--text-md);
   font-weight: 700;
   color: var(--muted);
 }
@@ -567,7 +578,7 @@ tbody tr:hover {
   color: var(--accent);
   background: #fff;
   text-decoration: none;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .mp-portal-link:hover {
@@ -576,7 +587,7 @@ tbody tr:hover {
 
 .wiki-link-btn {
   border: 1px solid var(--line);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: #eaecf0;
   color: var(--text);
   font-weight: 600;
@@ -608,7 +619,7 @@ tbody tr:hover {
 
 .wiki-home__stats article {
   border: 1px solid var(--line-light);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: #f8f9fa;
   padding: 0.6rem;
 }
@@ -617,13 +628,13 @@ tbody tr:hover {
   margin: 0.8rem 0 0.4rem;
   padding-top: 0.65rem;
   border-top: 1px solid var(--line-light);
-  font-size: 0.98rem;
+  font-size: var(--text-md);
 }
 
 .mp-box__note {
   margin: 0 0 0.45rem;
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
 }
 
 .mp-box__note--dates {
@@ -649,7 +660,7 @@ tbody tr:hover {
   background: #eaecf0;
   border: 1px solid var(--line-light);
   border-bottom: 0;
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   padding: 0.5rem 0.9rem;
   font: inherit;
   font-weight: 600;
@@ -657,6 +668,10 @@ tbody tr:hover {
   cursor: pointer;
   transition: background-color 0.15s;
   margin: 0.25rem 0.25rem 0;
+}
+
+.tab-bar__item--admin {
+  display: none !important;
 }
 
 .tab-bar__item:hover {
@@ -688,15 +703,51 @@ tbody tr:hover {
 /* === LAYOUT VARIANTS === */
 
 .layout--dashboard {
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
 }
 
 .layout--dashboard .panel {
-  grid-column: auto;
+  grid-column: 1 / -1;
 }
 
-.panel--research-coverage {
-  grid-column: 1 / -1 !important;
+.panel--dashboard-summary {
+  border-color: #d7dbe1;
+  background: linear-gradient(180deg, #fbfcff 0%, #ffffff 100%);
+}
+
+.dashboard-summary-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.dashboard-detail {
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-md);
+  background: #fff;
+  overflow: hidden;
+}
+
+.dashboard-detail > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.7rem 0.9rem;
+  font-weight: 700;
+  font-size: var(--text-md);
+  background: #f3f4f6;
+}
+
+.dashboard-detail > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dashboard-detail[open] > summary {
+  border-bottom: 1px solid var(--line-light);
+}
+
+.dashboard-detail__body {
+  padding: 0.9rem;
 }
 
 .layout--single {
@@ -715,7 +766,7 @@ tbody tr:hover {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.4rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 0.2rem 0.35rem;
   margin-left: -0.35rem;
   margin-right: -0.35rem;
@@ -737,7 +788,7 @@ tbody tr:hover {
 
 .bar-row__label {
   min-width: 100px;
-  font-size: 0.84rem;
+  font-size: var(--text-sm);
   text-align: right;
   color: var(--muted);
 }
@@ -746,20 +797,20 @@ tbody tr:hover {
   flex: 1;
   height: 20px;
   background: #efe8d7;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .bar-row__fill {
   height: 100%;
   background: var(--accent);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   transition: width 0.3s;
 }
 
 .bar-row__value {
   min-width: 32px;
-  font-size: 0.84rem;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
@@ -767,7 +818,7 @@ tbody tr:hover {
   margin: 1rem 0 0.55rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--line-light);
-  font-size: 0.96rem;
+  font-size: var(--text-md);
 }
 
 .coverage-two-col {
@@ -789,9 +840,9 @@ tbody tr:hover {
   border: 1px solid var(--line-light);
   background: #fff;
   color: var(--accent);
-  border-radius: 2px;
-  padding: 0.2rem 0.45rem;
-  font-size: 0.82rem;
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  font-size: var(--text-sm);
 }
 
 .coverage-date-btn:hover {
@@ -800,7 +851,7 @@ tbody tr:hover {
 
 .coverage-table th,
 .coverage-table td {
-  font-size: 0.83rem;
+  font-size: var(--text-sm);
   vertical-align: middle;
 }
 
@@ -808,7 +859,7 @@ tbody tr:hover {
 
 .intake-form fieldset {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 1rem;
   margin: 0 0 1rem 0;
 }
@@ -837,7 +888,7 @@ tbody tr:hover {
   border: 1px solid var(--accent);
   cursor: pointer;
   font: inherit;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0.45rem 0.8rem;
   margin-top: 0.5rem;
 }
@@ -851,9 +902,9 @@ tbody tr:hover {
   color: #b33;
   border: 1px solid #b33;
   cursor: pointer;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   padding: 0.35rem 0.6rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .btn-remove-source:hover {
@@ -866,7 +917,7 @@ tbody tr:hover {
 
 .form-status {
   margin-top: 0.6rem;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   min-height: 1.4em;
 }
 
@@ -890,10 +941,10 @@ tbody tr:hover {
   background: #fff;
   border: 1px solid var(--line);
   padding: 0.45rem 0.9rem;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
   color: var(--text);
 }
 
@@ -909,7 +960,7 @@ tbody tr:hover {
 
 .queue-card {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   margin-bottom: 0.6rem;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(47, 36, 22, 0.04);
@@ -931,7 +982,7 @@ tbody tr:hover {
 
 .queue-card__title {
   font-weight: 600;
-  font-size: 0.92rem;
+  font-size: var(--text-md);
   flex: 1;
   min-width: 0;
 }
@@ -940,7 +991,7 @@ tbody tr:hover {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   color: var(--muted);
   flex-shrink: 0;
 }
@@ -972,7 +1023,7 @@ tbody tr:hover {
 
 .action-status {
   margin-top: 0.6rem;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
 /* === PAGINATION === */
@@ -986,11 +1037,11 @@ tbody tr:hover {
 
 .pagination button {
   padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
 }
 
 .pagination__info {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 
@@ -1007,11 +1058,11 @@ tbody tr:hover {
   display: inline-flex;
   align-items: center;
   border: 1px solid var(--accent);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: #fff;
   color: var(--accent);
   text-decoration: none;
-  font-size: 0.84rem;
+  font-size: var(--text-sm);
   padding: 0.4rem 0.8rem;
 }
 
@@ -1034,8 +1085,8 @@ tbody tr:hover {
   border: 1px solid var(--accent);
   cursor: pointer;
   font: inherit;
-  font-size: 0.84rem;
-  border-radius: 8px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
   padding: 0.4rem 0.8rem;
 }
 
@@ -1049,8 +1100,8 @@ tbody tr:hover {
   border: 1px solid #b33;
   cursor: pointer;
   font: inherit;
-  font-size: 0.84rem;
-  border-radius: 8px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
   padding: 0.4rem 0.8rem;
 }
 
@@ -1064,8 +1115,8 @@ tbody tr:hover {
   border: 1px solid #2a7d3f;
   cursor: pointer;
   font: inherit;
-  font-size: 0.84rem;
-  border-radius: 8px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
   padding: 0.4rem 0.8rem;
 }
 
@@ -1081,7 +1132,7 @@ tbody tr:hover {
 
 .edit-form fieldset {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 1rem;
   margin: 0 0 1rem 0;
 }
@@ -1111,8 +1162,8 @@ tbody tr:hover {
   border: 1px solid var(--line);
   cursor: pointer;
   font: inherit;
-  font-size: 0.84rem;
-  border-radius: 8px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
   padding: 0.4rem 0.8rem;
 }
 
@@ -1125,12 +1176,12 @@ tbody tr:hover {
   padding: 0.8rem;
   background: #fef3f3;
   border: 1px solid #e8b4b4;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .confirm-dialog p {
   margin: 0 0 0.6rem 0;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   color: #b33;
   font-weight: 600;
 }
@@ -1159,7 +1210,7 @@ tbody tr:hover {
 .article-page__kicker {
   margin: 0 0 0.2rem;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
@@ -1173,7 +1224,7 @@ tbody tr:hover {
 .article-page__meta {
   margin: 0.5rem 0 0;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: var(--text-md);
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
@@ -1190,7 +1241,7 @@ tbody tr:hover {
 
 .article-section {
   border: 1px solid var(--line-light);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.75rem 0.9rem;
   background: #fff;
 }
@@ -1198,7 +1249,7 @@ tbody tr:hover {
 .article-section h2 {
   margin: 0 0 0.6rem;
   font-family: "Noto Serif", Georgia, serif;
-  font-size: 1.06rem;
+  font-size: var(--text-lg);
 }
 
 .article-section ul {

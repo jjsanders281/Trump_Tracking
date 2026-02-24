@@ -194,7 +194,7 @@ byId("tabBar").addEventListener("click", (e) => {
 byId("tabBar").addEventListener("keydown", (e) => {
   const current = e.target.closest(".tab-bar__item");
   if (!current) return;
-  const tabs = Array.from(document.querySelectorAll(".tab-bar__item"));
+  const tabs = Array.from(document.querySelectorAll(".tab-bar__item:not(.tab-bar__item--admin)"));
   const index = tabs.indexOf(current);
   if (index === -1) return;
 
@@ -1255,6 +1255,20 @@ function renderCoverageMonthlyRollup(months) {
     .join("");
 }
 
+function openDashboardDetail(detailName) {
+  const detailMap = {
+    coverage: "dashDetailCoverage",
+    workflow: "dashDetailWorkflow",
+    trends: "dashDetailTrends",
+  };
+  const targetId = detailMap[detailName];
+  if (!targetId) return;
+  const detailsEl = byId(targetId);
+  if (!detailsEl) return;
+  detailsEl.open = true;
+  detailsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function renderBarChart(containerId, dataObj, clickField) {
   const container = byId(containerId);
   const entries = Object.entries(dataObj);
@@ -1325,6 +1339,13 @@ function navigateToSearchForDate(dateValue) {
 }
 
 byId("tabDashboard").addEventListener("click", (e) => {
+  const detailBtn = e.target.closest("[data-open-dashboard-detail]");
+  if (detailBtn) {
+    const detailName = detailBtn.dataset.openDashboardDetail;
+    if (detailName) openDashboardDetail(detailName);
+    return;
+  }
+
   const btn = e.target.closest("[data-coverage-date]");
   if (!btn) return;
   const dateValue = btn.dataset.coverageDate;

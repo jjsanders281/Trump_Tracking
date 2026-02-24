@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trump Tracking Research Database</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20260224200833" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260224202022" />
   </head>
   <body>
     <header class="wiki-masthead hero">
@@ -33,9 +33,9 @@
         role="tab" aria-controls="tabArticle" aria-selected="false">Article</button>
       <button class="tab-bar__item" id="tabBtnDashboard" data-tab="dashboard"
         role="tab" aria-controls="tabDashboard" aria-selected="false">Dashboard</button>
-      <button class="tab-bar__item" id="tabBtnIntake" data-tab="intake"
+      <button class="tab-bar__item tab-bar__item--admin" id="tabBtnIntake" data-tab="intake"
         role="tab" aria-controls="tabIntake" aria-selected="false">Intake</button>
-      <button class="tab-bar__item" id="tabBtnReview" data-tab="review"
+      <button class="tab-bar__item tab-bar__item--admin" id="tabBtnReview" data-tab="review"
         role="tab" aria-controls="tabReview" aria-selected="false">Review</button>
     </nav>
 
@@ -51,8 +51,8 @@
           </p>
           <p class="wiki-mainpage__intro-links">
             <button class="wiki-link-btn" data-home-nav="search">Browse claims</button>
-            <button class="wiki-link-btn" data-home-nav="dashboard">View dashboards</button>
-            <button class="wiki-link-btn" data-home-nav="review">Open review queues</button>
+            <button class="wiki-link-btn" data-home-nav="article">Read explainers</button>
+            <button class="wiki-link-btn" data-home-nav="dashboard">View dashboard</button>
           </p>
         </section>
 
@@ -98,9 +98,9 @@
             <h2 class="mp-box__title">Reference Portals</h2>
             <div class="mp-portal-grid">
               <a class="mp-portal-link" href="#" data-home-nav="search">Claim Index</a>
-              <a class="mp-portal-link" href="#" data-home-nav="dashboard">Verdict Trends</a>
-              <a class="mp-portal-link" href="#" data-home-nav="review">Editorial Queue</a>
-              <a class="mp-portal-link" href="#" data-home-nav="intake">Research Intake</a>
+              <a class="mp-portal-link" href="#" data-home-nav="article">Claim Explainers</a>
+              <a class="mp-portal-link" href="#" data-home-nav="dashboard">Dashboard Summary</a>
+              <a class="mp-portal-link" href="#" data-home-nav="search">Topic Search</a>
             </div>
           </section>
 
@@ -268,124 +268,11 @@
     <main class="tab-content" id="tabDashboard" role="tabpanel"
       aria-labelledby="tabBtnDashboard">
       <div class="layout layout--dashboard">
-        <section class="panel panel--research-coverage">
-          <h2>Research Coverage Tracker</h2>
+        <section class="panel panel--dashboard-summary">
+          <h2>Executive Summary</h2>
           <p class="muted" id="coverageRangeSummary">
             Coverage range and backlog details will load here.
           </p>
-          <div class="metrics metrics--6col">
-            <article>
-              <p class="label">Total Days</p>
-              <p class="value" id="coverageTotalDays">-</p>
-            </article>
-            <article>
-              <p class="label">Researched Days</p>
-              <p class="value" id="coverageResearchedDays">-</p>
-            </article>
-            <article>
-              <p class="label">Missing Days</p>
-              <p class="value" id="coverageMissingDays">-</p>
-            </article>
-            <article>
-              <p class="label">In Progress</p>
-              <p class="value" id="coverageInProgressDays">-</p>
-            </article>
-            <article>
-              <p class="label">Complete Days</p>
-              <p class="value" id="coverageCompleteDays">-</p>
-            </article>
-            <article>
-              <p class="label">Coverage / Completion</p>
-              <p class="value" id="coveragePercentPair">-</p>
-            </article>
-          </div>
-
-          <h3 class="panel-subhead">Daily Research Levels</h3>
-          <div id="coverageLevelBars"></div>
-
-          <div class="coverage-two-col">
-            <section>
-              <h3 class="panel-subhead">Oldest Missing Dates</h3>
-              <ul class="coverage-date-list" id="coverageMissingList">
-                <li class="muted">No missing-day data loaded yet.</li>
-              </ul>
-            </section>
-            <section>
-              <h3 class="panel-subhead">Oldest Incomplete Dates</h3>
-              <ul class="coverage-date-list" id="coverageIncompleteList">
-                <li class="muted">No incomplete-day data loaded yet.</li>
-              </ul>
-            </section>
-          </div>
-
-          <h3 class="panel-subhead">Recent Day-By-Day Log</h3>
-          <div class="table-wrap">
-            <table class="coverage-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Level</th>
-                  <th>Claims</th>
-                  <th>Fact-Checked</th>
-                  <th>Finalized</th>
-                  <th>Verified Lies</th>
-                </tr>
-              </thead>
-              <tbody id="coverageRecentBody">
-                <tr><td colspan="6" class="muted">No recent day data loaded yet.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3 class="panel-subhead">Monthly Rollup</h3>
-          <div class="table-wrap">
-            <table class="coverage-table">
-              <thead>
-                <tr>
-                  <th>Month</th>
-                  <th>Total Days</th>
-                  <th>Researched</th>
-                  <th>Missing</th>
-                  <th>Complete</th>
-                  <th>Coverage %</th>
-                  <th>Completion %</th>
-                </tr>
-              </thead>
-              <tbody id="coverageMonthlyBody">
-                <tr><td colspan="7" class="muted">No monthly rollup data loaded yet.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="panel">
-          <h2>Workflow Queues</h2>
-          <div class="metrics metrics--4col" id="dashWorkflowMetrics">
-            <article class="metric-link" data-goto-queue="fact_check" tabindex="0" role="button"
-              aria-label="View fact-check queue">
-              <p class="label">Needs Fact-Check</p>
-              <p class="value" id="queueFactCheck">-</p>
-            </article>
-            <article class="metric-link" data-goto-queue="editorial" tabindex="0" role="button"
-              aria-label="View editorial queue">
-              <p class="label">Awaiting Editorial</p>
-              <p class="value" id="queueEditorial">-</p>
-            </article>
-            <article class="metric-link" data-goto-queue="verified" tabindex="0" role="button"
-              aria-label="View verified claims">
-              <p class="label">Verified</p>
-              <p class="value" id="queueVerified">-</p>
-            </article>
-            <article class="metric-link" data-goto-queue="rejected" tabindex="0" role="button"
-              aria-label="View rejected claims">
-              <p class="label">Rejected</p>
-              <p class="value" id="queueRejected">-</p>
-            </article>
-          </div>
-        </section>
-
-        <section class="panel">
-          <h2>Claim Overview</h2>
           <div class="metrics">
             <article>
               <p class="label">Total Claims</p>
@@ -396,20 +283,149 @@
               <p class="value" id="dashVerifiedClaims">-</p>
             </article>
             <article>
-              <p class="label">Contradiction Links</p>
-              <p class="value" id="dashContradictionLinks">-</p>
+              <p class="label">Missing Research Days</p>
+              <p class="value" id="coverageMissingDays">-</p>
             </article>
+          </div>
+          <div class="dashboard-summary-links">
+            <button class="wiki-link-btn wiki-link-btn--subtle" type="button"
+              data-open-dashboard-detail="coverage">View Research Coverage</button>
+            <button class="wiki-link-btn wiki-link-btn--subtle" type="button"
+              data-open-dashboard-detail="workflow">View Workflow</button>
+            <button class="wiki-link-btn wiki-link-btn--subtle" type="button"
+              data-open-dashboard-detail="trends">View Trends</button>
           </div>
         </section>
 
         <section class="panel">
-          <h2>Verdicts</h2>
-          <div id="verdictBars"></div>
+          <details class="dashboard-detail" id="dashDetailCoverage">
+            <summary>Research Coverage Details</summary>
+            <div class="dashboard-detail__body">
+              <div class="metrics metrics--4col">
+                <article>
+                  <p class="label">Total Days</p>
+                  <p class="value" id="coverageTotalDays">-</p>
+                </article>
+                <article>
+                  <p class="label">Researched Days</p>
+                  <p class="value" id="coverageResearchedDays">-</p>
+                </article>
+                <article>
+                  <p class="label">In Progress</p>
+                  <p class="value" id="coverageInProgressDays">-</p>
+                </article>
+                <article>
+                  <p class="label">Completion</p>
+                  <p class="value" id="coveragePercentPair">-</p>
+                </article>
+              </div>
+
+              <h3 class="panel-subhead">Daily Research Levels</h3>
+              <div id="coverageLevelBars"></div>
+
+              <div class="coverage-two-col">
+                <section>
+                  <h3 class="panel-subhead">Oldest Missing Dates</h3>
+                  <ul class="coverage-date-list" id="coverageMissingList">
+                    <li class="muted">No missing-day data loaded yet.</li>
+                  </ul>
+                </section>
+                <section>
+                  <h3 class="panel-subhead">Oldest Incomplete Dates</h3>
+                  <ul class="coverage-date-list" id="coverageIncompleteList">
+                    <li class="muted">No incomplete-day data loaded yet.</li>
+                  </ul>
+                </section>
+              </div>
+
+              <h3 class="panel-subhead">Recent Day-By-Day Log</h3>
+              <div class="table-wrap">
+                <table class="coverage-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Level</th>
+                      <th>Claims</th>
+                      <th>Fact-Checked</th>
+                      <th>Finalized</th>
+                      <th>Verified Lies</th>
+                    </tr>
+                  </thead>
+                  <tbody id="coverageRecentBody">
+                    <tr><td colspan="6" class="muted">No recent day data loaded yet.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 class="panel-subhead">Monthly Rollup</h3>
+              <div class="table-wrap">
+                <table class="coverage-table">
+                  <thead>
+                    <tr>
+                      <th>Month</th>
+                      <th>Total Days</th>
+                      <th>Researched</th>
+                      <th>Missing</th>
+                      <th>Complete</th>
+                      <th>Coverage %</th>
+                      <th>Completion %</th>
+                    </tr>
+                  </thead>
+                  <tbody id="coverageMonthlyBody">
+                    <tr><td colspan="7" class="muted">No monthly rollup data loaded yet.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
         </section>
 
         <section class="panel">
-          <h2>Topics</h2>
-          <div id="topicBars"></div>
+          <details class="dashboard-detail" id="dashDetailWorkflow">
+            <summary>Workflow Details</summary>
+            <div class="dashboard-detail__body">
+              <div class="metrics metrics--4col" id="dashWorkflowMetrics">
+                <article>
+                  <p class="label">Needs Fact-Check</p>
+                  <p class="value" id="queueFactCheck">-</p>
+                </article>
+                <article>
+                  <p class="label">Awaiting Editorial</p>
+                  <p class="value" id="queueEditorial">-</p>
+                </article>
+                <article>
+                  <p class="label">Verified</p>
+                  <p class="value" id="queueVerified">-</p>
+                </article>
+                <article>
+                  <p class="label">Rejected</p>
+                  <p class="value" id="queueRejected">-</p>
+                </article>
+              </div>
+              <div class="metrics">
+                <article>
+                  <p class="label">Contradiction Links</p>
+                  <p class="value" id="dashContradictionLinks">-</p>
+                </article>
+                <article>
+                  <p class="label">Complete Research Days</p>
+                  <p class="value" id="coverageCompleteDays">-</p>
+                </article>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section class="panel">
+          <details class="dashboard-detail" id="dashDetailTrends">
+            <summary>Verdict & Topic Trends</summary>
+            <div class="dashboard-detail__body">
+              <h3 class="panel-subhead">Verdicts</h3>
+              <div id="verdictBars"></div>
+              <h3 class="panel-subhead">Topics</h3>
+              <div id="topicBars"></div>
+            </div>
+          </details>
         </section>
       </div>
     </main>
@@ -549,6 +565,6 @@
       </div>
     </main>
 
-    <script src="/static/app.js?v=20260224200833" type="module"></script>
+    <script src="/static/app.js?v=20260224202022" type="module"></script>
   </body>
 </html>
