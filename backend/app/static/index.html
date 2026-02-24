@@ -15,96 +15,290 @@
       </p>
     </header>
 
-    <main class="layout">
-      <section class="panel">
-        <h2>Search Claims</h2>
-        <div class="controls">
-          <label>
-            Keywords
-            <input id="q" type="text" placeholder="Try: healthcare, election, plan" />
-          </label>
-          <label>
-            Topic
-            <input id="topic" type="text" placeholder="Healthcare" />
-          </label>
-          <label>
-            Verdict
-            <select id="verdict">
-              <option value="">Any</option>
-              <option value="true">True</option>
-              <option value="mixed">Mixed</option>
-              <option value="misleading">Misleading</option>
-              <option value="false">False</option>
-              <option value="unverified">Unverified</option>
-              <option value="unfulfilled">Unfulfilled</option>
-              <option value="contradicted">Contradicted</option>
-            </select>
-          </label>
-          <label>
-            Start Date
-            <input id="start_date" type="date" />
-          </label>
-          <label>
-            End Date
-            <input id="end_date" type="date" />
-          </label>
-          <label>
-            Min Impact
-            <select id="min_impact">
-              <option value="">Any</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-            </select>
-          </label>
-          <label class="checkbox">
-            <input id="verified_only" type="checkbox" checked />
-            Verified only
-          </label>
-          <button id="searchBtn">Search</button>
-        </div>
-      </section>
+    <nav class="tab-bar" id="tabBar">
+      <button class="tab-bar__item tab-bar__item--active" data-tab="search">Search</button>
+      <button class="tab-bar__item" data-tab="dashboard">Dashboard</button>
+      <button class="tab-bar__item" data-tab="intake">Intake</button>
+      <button class="tab-bar__item" data-tab="review">Review</button>
+    </nav>
 
-      <section class="panel metrics" id="metrics">
-        <article>
-          <p class="label">Total Claims</p>
-          <p class="value" id="totalClaims">-</p>
-        </article>
-        <article>
-          <p class="label">Verified Claims</p>
-          <p class="value" id="verifiedClaims">-</p>
-        </article>
-        <article>
-          <p class="label">Contradiction Links</p>
-          <p class="value" id="contradictionLinks">-</p>
-        </article>
-      </section>
+    <!-- TAB: SEARCH (existing content, wrapped) -->
+    <main class="tab-content tab-content--active" id="tabSearch">
+      <div class="layout">
+        <section class="panel">
+          <h2>Search Claims</h2>
+          <div class="controls">
+            <label>
+              Keywords
+              <input id="q" type="text" placeholder="Try: healthcare, election, plan" />
+            </label>
+            <label>
+              Topic
+              <input id="topic" type="text" placeholder="Healthcare" />
+            </label>
+            <label>
+              Verdict
+              <select id="verdict">
+                <option value="">Any</option>
+                <option value="true">True</option>
+                <option value="mixed">Mixed</option>
+                <option value="misleading">Misleading</option>
+                <option value="false">False</option>
+                <option value="unverified">Unverified</option>
+                <option value="unfulfilled">Unfulfilled</option>
+                <option value="contradicted">Contradicted</option>
+              </select>
+            </label>
+            <label>
+              Start Date
+              <input id="start_date" type="date" />
+            </label>
+            <label>
+              End Date
+              <input id="end_date" type="date" />
+            </label>
+            <label>
+              Min Impact
+              <select id="min_impact">
+                <option value="">Any</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+            </label>
+            <label class="checkbox">
+              <input id="verified_only" type="checkbox" checked />
+              Verified only
+            </label>
+            <button id="searchBtn">Search</button>
+          </div>
+        </section>
 
-      <section class="panel">
-        <h2>Results</h2>
-        <p id="resultCount"></p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Topic</th>
-                <th>Verdict</th>
-                <th>Impact</th>
-                <th>Quote</th>
-              </tr>
-            </thead>
-            <tbody id="resultsBody"></tbody>
-          </table>
-        </div>
-      </section>
+        <section class="panel metrics" id="metrics">
+          <article>
+            <p class="label">Total Claims</p>
+            <p class="value" id="totalClaims">-</p>
+          </article>
+          <article>
+            <p class="label">Verified Claims</p>
+            <p class="value" id="verifiedClaims">-</p>
+          </article>
+          <article>
+            <p class="label">Contradiction Links</p>
+            <p class="value" id="contradictionLinks">-</p>
+          </article>
+        </section>
 
-      <section class="panel" id="detailPanel">
-        <h2>Claim Detail</h2>
-        <p class="muted">Select a result to inspect quote, rationale, and source links.</p>
-      </section>
+        <section class="panel">
+          <h2>Results</h2>
+          <p id="resultCount"></p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Topic</th>
+                  <th>Verdict</th>
+                  <th>Impact</th>
+                  <th>Quote</th>
+                </tr>
+              </thead>
+              <tbody id="resultsBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" id="detailPanel">
+          <h2>Claim Detail</h2>
+          <p class="muted">Select a result to inspect quote, rationale, and source links.</p>
+        </section>
+      </div>
+    </main>
+
+    <!-- TAB: DASHBOARD -->
+    <main class="tab-content" id="tabDashboard">
+      <div class="layout layout--dashboard">
+        <section class="panel">
+          <h2>Workflow Queues</h2>
+          <div class="metrics metrics--4col">
+            <article>
+              <p class="label">Needs Fact-Check</p>
+              <p class="value" id="queueFactCheck">-</p>
+            </article>
+            <article>
+              <p class="label">Awaiting Editorial</p>
+              <p class="value" id="queueEditorial">-</p>
+            </article>
+            <article>
+              <p class="label">Verified</p>
+              <p class="value" id="queueVerified">-</p>
+            </article>
+            <article>
+              <p class="label">Rejected</p>
+              <p class="value" id="queueRejected">-</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Claim Overview</h2>
+          <div class="metrics">
+            <article>
+              <p class="label">Total Claims</p>
+              <p class="value" id="dashTotalClaims">-</p>
+            </article>
+            <article>
+              <p class="label">Verified Claims</p>
+              <p class="value" id="dashVerifiedClaims">-</p>
+            </article>
+            <article>
+              <p class="label">Contradiction Links</p>
+              <p class="value" id="dashContradictionLinks">-</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Verdicts</h2>
+          <div id="verdictBars"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Topics</h2>
+          <div id="topicBars"></div>
+        </section>
+      </div>
+    </main>
+
+    <!-- TAB: INTAKE -->
+    <main class="tab-content" id="tabIntake">
+      <div class="layout layout--single">
+        <section class="panel">
+          <h2>Research Intake</h2>
+          <p class="muted">Submit a new statement and claim for the fact-checking pipeline.</p>
+          <form id="intakeForm" class="intake-form">
+            <fieldset>
+              <legend>Statement</legend>
+              <div class="controls">
+                <label>
+                  Date/Time *
+                  <input id="intakeOccurredAt" type="datetime-local" required />
+                </label>
+                <label>
+                  Speaker
+                  <input id="intakeSpeaker" type="text" value="Donald J. Trump" />
+                </label>
+                <label>
+                  Venue
+                  <input id="intakeVenue" type="text" placeholder="Press Conference, Rally, etc." />
+                </label>
+                <label>
+                  Impact Score
+                  <select id="intakeImpactScore">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Quote *
+                <textarea id="intakeQuote" rows="3" required minlength="5"
+                  placeholder="The exact quote or close paraphrase..."></textarea>
+              </label>
+              <label>
+                Context
+                <textarea id="intakeContext" rows="2"
+                  placeholder="Surrounding context, audience, preceding events..."></textarea>
+              </label>
+              <label>
+                Primary Source URL *
+                <input id="intakePrimarySourceUrl" type="url" required placeholder="https://..." />
+              </label>
+              <label>
+                Media URL
+                <input id="intakeMediaUrl" type="url" placeholder="https://..." />
+              </label>
+              <div class="controls">
+                <label>
+                  Region
+                  <input id="intakeRegion" type="text" value="US" />
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Claim</legend>
+              <label>
+                Claim Text *
+                <textarea id="intakeClaimText" rows="2" required minlength="5"
+                  placeholder="The atomic factual assertion..."></textarea>
+              </label>
+              <div class="controls">
+                <label>
+                  Topic *
+                  <input id="intakeTopic" type="text" required placeholder="Healthcare, Economy, etc." />
+                </label>
+                <label>
+                  Claim Kind
+                  <select id="intakeClaimKind">
+                    <option value="statement">Statement</option>
+                    <option value="promise">Promise</option>
+                    <option value="denial">Denial</option>
+                    <option value="attack">Attack</option>
+                    <option value="policy">Policy</option>
+                  </select>
+                </label>
+                <label>
+                  Tags (comma-separated)
+                  <input id="intakeTags" type="text" placeholder="economy, tariff" />
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Sources</legend>
+              <div id="intakeSources"></div>
+              <button type="button" id="addSourceBtn" class="btn-secondary">+ Add Source</button>
+            </fieldset>
+
+            <fieldset>
+              <legend>Notes</legend>
+              <label>
+                Intake Note
+                <textarea id="intakeNote" rows="2"
+                  placeholder="Any additional context for the fact-checker..."></textarea>
+              </label>
+            </fieldset>
+
+            <div class="form-actions">
+              <button type="submit">Submit Intake</button>
+            </div>
+            <div id="intakeStatus" class="form-status"></div>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <!-- TAB: REVIEW -->
+    <main class="tab-content" id="tabReview">
+      <div class="layout layout--single">
+        <section class="panel">
+          <h2>Review Queues</h2>
+          <nav class="sub-tab-bar" id="reviewSubTabs">
+            <button class="sub-tab-bar__item sub-tab-bar__item--active"
+              data-stage="fact_check">Fact-Check <span id="reviewBadgeFactCheck" class="badge">0</span></button>
+            <button class="sub-tab-bar__item"
+              data-stage="editorial">Editorial <span id="reviewBadgeEditorial" class="badge">0</span></button>
+          </nav>
+          <div id="reviewQueue"></div>
+          <div class="pagination" id="reviewPagination"></div>
+        </section>
+      </div>
     </main>
 
     <script src="/static/app.js" type="module"></script>
