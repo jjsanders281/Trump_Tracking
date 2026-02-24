@@ -3,6 +3,7 @@
 const state = {
   activeTab: "search",
   items: [],
+  selectedResultId: null,
   dashboardData: null,
   reviewStage: "fact_check",
   reviewItems: [],
@@ -29,13 +30,36 @@ const fmtDate = (value) => {
   return d.toISOString().slice(0, 10);
 };
 
+const verdictBadgeClass = (value) => {
+  const normalized = String(value ?? "na").toLowerCase();
+  const valid = new Set([
+    "true",
+    "mixed",
+    "misleading",
+    "false",
+    "unverified",
+    "unfulfilled",
+    "contradicted",
+    "pending",
+    "verified",
+    "rejected",
+    "na",
+    "n/a",
+  ]);
+  if (!valid.has(normalized)) return "badge--na";
+  return normalized === "n/a" ? "badge--na" : `badge--${normalized}`;
+};
+
 // === TAB MANAGEMENT ===
 
 function switchTab(tabName) {
   state.activeTab = tabName;
 
   for (const btn of document.querySelectorAll(".tab-bar__item")) {
-    btn.classList.toggle("tab-bar__item--active", btn.dataset.tab === tabName);
+    const isActive = btn.dataset.tab === tabName;
+    btn.classList.toggle("tab-bar__item--active", isActive);
+    btn.setAttribute("aria-selected", String(isActive));
+    btn.tabIndex = isActive ? 0 : -1;
   }
 
   const tabIds = {
@@ -45,7 +69,9 @@ function switchTab(tabName) {
     review: "tabReview",
   };
   for (const [key, id] of Object.entries(tabIds)) {
-    byId(id).classList.toggle("tab-content--active", key === tabName);
+    const isActive = key === tabName;
+    byId(id).classList.toggle("tab-content--active", isActive);
+    byId(id).setAttribute("aria-hidden", String(!isActive));
   }
 
   if (tabName === "dashboard") loadDashboard();
@@ -55,6 +81,24 @@ function switchTab(tabName) {
 byId("tabBar").addEventListener("click", (e) => {
   const btn = e.target.closest(".tab-bar__item");
   if (btn) switchTab(btn.dataset.tab);
+});
+
+byId("tabBar").addEventListener("keydown", (e) => {
+  const current = e.target.closest(".tab-bar__item");
+  if (!current) return;
+  const tabs = Array.from(document.querySelectorAll(".tab-bar__item"));
+  const index = tabs.indexOf(current);
+  if (index === -1) return;
+
+  let nextIndex = null;
+  if (e.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+  if (e.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+  if (nextIndex === null) return;
+
+  e.preventDefault();
+  const next = tabs[nextIndex];
+  next.focus();
+  switchTab(next.dataset.tab);
 });
 
 // === SEARCH (existing logic, unchanged) ===
@@ -84,6 +128,9 @@ function buildQuery() {
 
 function renderResults(payload) {
   state.items = payload.items;
+  if (!payload.items.some((item) => item.id === state.selectedResultId)) {
+    state.selectedResultId = payload.items.length ? payload.items[0].id : null;
+  }
 
   byId("resultCount").textContent = `${payload.total} result(s)`;
 
@@ -91,6 +138,7 @@ function renderResults(payload) {
   tbody.innerHTML = "";
 
   if (!payload.items.length) {
+    state.selectedResultId = null;
     tbody.innerHTML =
       '<tr><td colspan="5" class="muted">No results matched this query.</td></tr>';
     byId("detailPanel").innerHTML =
@@ -100,19 +148,47 @@ function renderResults(payload) {
 
   for (const item of payload.items) {
     const tr = document.createElement("tr");
+    tr.className = "results-row";
     tr.dataset.claimId = item.id;
+    tr.tabIndex = 0;
+    const isSelected = item.id === state.selectedResultId;
+    tr.classList.toggle("results-row--selected", isSelected);
+    tr.setAttribute("aria-selected", String(isSelected));
+    const verdictClass = verdictBadgeClass(item.latest_assessment?.verdict ?? "na");
     tr.innerHTML = `
       <td>${escapeHtml(fmtDate(item.statement.occurred_at))}</td>
       <td>${escapeHtml(item.topic)}</td>
-      <td><span class="badge">${escapeHtml(item.latest_assessment?.verdict ?? "n/a")}</span></td>
+      <td><span class="badge ${verdictClass}">${escapeHtml(item.latest_assessment?.verdict ?? "n/a")}</span></td>
       <td>${escapeHtml(item.statement.impact_score)}</td>
       <td>${escapeHtml(item.statement.quote.slice(0, 160))}${item.statement.quote.length > 160 ? "..." : ""}</td>
     `;
-    tr.addEventListener("click", () => renderDetail(item));
+    tr.addEventListener("click", () => {
+      state.selectedResultId = item.id;
+      updateSelectedResultRow();
+      renderDetail(item);
+    });
+    tr.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        state.selectedResultId = item.id;
+        updateSelectedResultRow();
+        renderDetail(item);
+      }
+    });
     tbody.appendChild(tr);
   }
 
-  renderDetail(payload.items[0]);
+  const selected = payload.items.find((item) => item.id === state.selectedResultId) ?? payload.items[0];
+  renderDetail(selected);
+}
+
+function updateSelectedResultRow() {
+  for (const row of document.querySelectorAll("#resultsBody tr[data-claim-id]")) {
+    const rowId = parseInt(row.dataset.claimId, 10);
+    const isSelected = rowId === state.selectedResultId;
+    row.classList.toggle("results-row--selected", isSelected);
+    row.setAttribute("aria-selected", String(isSelected));
+  }
 }
 
 function renderDetail(item) {
@@ -131,6 +207,8 @@ function renderDetail(item) {
 
   const publishStatus = latest?.publish_status ?? "pending";
   const isFinalized = publishStatus === "verified" || publishStatus === "rejected";
+  const verdictClass = verdictBadgeClass(latest?.verdict ?? "na");
+  const publishStatusClass = verdictBadgeClass(publishStatus);
 
   panel.innerHTML = `
     <h2>Claim Detail</h2>
@@ -141,8 +219,8 @@ function renderDetail(item) {
       <p><strong>Claim:</strong> ${escapeHtml(item.claim_text)}</p>
     </div>
     <div class="detail-block">
-      <p><strong>Verdict:</strong> ${escapeHtml(latest?.verdict ?? "none")}</p>
-      <p><strong>Publish status:</strong> ${escapeHtml(publishStatus)}</p>
+      <p><strong>Verdict:</strong> <span class="badge ${verdictClass}">${escapeHtml(latest?.verdict ?? "none")}</span></p>
+      <p><strong>Publish status:</strong> <span class="badge ${publishStatusClass}">${escapeHtml(publishStatus)}</span></p>
       <p><strong>Rationale:</strong> ${escapeHtml(latest?.rationale ?? "Not assessed yet")}</p>
     </div>
     <div class="detail-block">
@@ -820,8 +898,9 @@ function renderEditorialForm(claimId, assessment) {
   const verdict = assessment?.verdict ?? "n/a";
   const rationale = assessment?.rationale ?? "No rationale available";
   const reviewer = assessment?.reviewer_primary ?? "Unknown";
+  const verdictClass = verdictBadgeClass(verdict);
   return `<div class="detail-block">
-    <p><strong>Fact-Check Verdict:</strong> <span class="badge">${escapeHtml(verdict)}</span></p>
+    <p><strong>Fact-Check Verdict:</strong> <span class="badge ${verdictClass}">${escapeHtml(verdict)}</span></p>
     <p><strong>Rationale:</strong> ${escapeHtml(rationale)}</p>
     <p><strong>Fact-Checker:</strong> ${escapeHtml(reviewer)}</p>
   </div>
@@ -1065,5 +1144,6 @@ byId("reviewPagination").addEventListener("click", (e) => {
 
 // === INITIALIZATION ===
 
+switchTab(state.activeTab);
 await loadSummary();
 await runSearch();

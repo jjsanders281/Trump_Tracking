@@ -15,17 +15,22 @@
       </p>
     </header>
 
-    <nav class="tab-bar" id="tabBar">
-      <button class="tab-bar__item tab-bar__item--active" data-tab="search">Search</button>
-      <button class="tab-bar__item" data-tab="dashboard">Dashboard</button>
-      <button class="tab-bar__item" data-tab="intake">Intake</button>
-      <button class="tab-bar__item" data-tab="review">Review</button>
+    <nav class="tab-bar" id="tabBar" role="tablist" aria-label="Primary sections">
+      <button class="tab-bar__item tab-bar__item--active" id="tabBtnSearch" data-tab="search"
+        role="tab" aria-controls="tabSearch" aria-selected="true">Search</button>
+      <button class="tab-bar__item" id="tabBtnDashboard" data-tab="dashboard"
+        role="tab" aria-controls="tabDashboard" aria-selected="false">Dashboard</button>
+      <button class="tab-bar__item" id="tabBtnIntake" data-tab="intake"
+        role="tab" aria-controls="tabIntake" aria-selected="false">Intake</button>
+      <button class="tab-bar__item" id="tabBtnReview" data-tab="review"
+        role="tab" aria-controls="tabReview" aria-selected="false">Review</button>
     </nav>
 
     <!-- TAB: SEARCH (existing content, wrapped) -->
-    <main class="tab-content tab-content--active" id="tabSearch">
+    <main class="tab-content tab-content--active" id="tabSearch" role="tabpanel"
+      aria-labelledby="tabBtnSearch">
       <div class="layout">
-        <section class="panel">
+        <section class="panel panel--search-filters">
           <h2>Search Claims</h2>
           <div class="controls">
             <label>
@@ -76,7 +81,7 @@
           </div>
         </section>
 
-        <section class="panel metrics" id="metrics">
+        <section class="panel panel--search-metrics metrics" id="metrics">
           <article>
             <p class="label">Total Claims</p>
             <p class="value" id="totalClaims">-</p>
@@ -91,7 +96,7 @@
           </article>
         </section>
 
-        <section class="panel">
+        <section class="panel panel--search-results">
           <h2>Results</h2>
           <p id="resultCount"></p>
           <div class="table-wrap">
@@ -110,7 +115,7 @@
           </div>
         </section>
 
-        <section class="panel" id="detailPanel">
+        <section class="panel panel--search-detail" id="detailPanel" tabindex="-1">
           <h2>Claim Detail</h2>
           <p class="muted">Select a result to inspect quote, rationale, and source links.</p>
         </section>
@@ -118,7 +123,8 @@
     </main>
 
     <!-- TAB: DASHBOARD -->
-    <main class="tab-content" id="tabDashboard">
+    <main class="tab-content" id="tabDashboard" role="tabpanel"
+      aria-labelledby="tabBtnDashboard">
       <div class="layout layout--dashboard">
         <section class="panel">
           <h2>Workflow Queues</h2>
@@ -173,7 +179,8 @@
     </main>
 
     <!-- TAB: INTAKE -->
-    <main class="tab-content" id="tabIntake">
+    <main class="tab-content" id="tabIntake" role="tabpanel"
+      aria-labelledby="tabBtnIntake">
       <div class="layout layout--single">
         <section class="panel">
           <h2>Research Intake</h2>
@@ -285,7 +292,8 @@
     </main>
 
     <!-- TAB: REVIEW -->
-    <main class="tab-content" id="tabReview">
+    <main class="tab-content" id="tabReview" role="tabpanel"
+      aria-labelledby="tabBtnReview">
       <div class="layout layout--single">
         <section class="panel">
           <h2>Review Queues</h2>
