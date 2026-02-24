@@ -1,14 +1,15 @@
-@import url("https://fonts.googleapis.com/css2?family=Newsreader:wght@500;700&family=Source+Sans+3:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Serif:wght@500;700&display=swap");
 
 :root {
-  --bg: #f2efe7;
-  --bg-elevated: #f8f5ee;
-  --text: #151515;
-  --panel: #fffdf7;
-  --line: #cdc5b4;
-  --accent: #5e2a1f;
-  --accent-strong: #4a1f17;
-  --muted: #5f584d;
+  --bg: #f8f9fa;
+  --bg-elevated: #ffffff;
+  --text: #202122;
+  --panel: #ffffff;
+  --line: #a2a9b1;
+  --line-light: #c8ccd1;
+  --accent: #3366cc;
+  --accent-strong: #254d99;
+  --muted: #54595d;
   --focus-ring: #0b6bcb;
 
   --v-true-bg: #e7f6ec;
@@ -27,35 +28,54 @@
 
 body {
   margin: 0;
-  font-family: "Source Sans 3", "Segoe UI", Tahoma, sans-serif;
-  background: radial-gradient(circle at top right, #fff9de 0%, var(--bg) 45%, #e9e3d6 100%);
+  font-family: "Noto Sans", "Segoe UI", Tahoma, sans-serif;
+  background: var(--bg);
   color: var(--text);
   line-height: 1.45;
 }
 
-.hero {
-  padding: 2.2rem 1rem 1rem;
-  max-width: 1200px;
+.wiki-masthead {
+  padding: 1rem;
+  max-width: 1240px;
   margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: end;
+  border-bottom: 1px solid var(--line-light);
 }
 
-.hero h1 {
+.wiki-masthead__brand h1 {
   margin: 0;
-  font-family: "Newsreader", Georgia, serif;
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
-  letter-spacing: -0.01em;
+  font-family: "Noto Serif", Georgia, serif;
+  font-size: clamp(1.75rem, 3vw, 2.3rem);
+  letter-spacing: 0;
 }
 
-.hero p {
-  max-width: 70ch;
+.wiki-masthead__brand p {
+  max-width: 72ch;
   color: var(--muted);
-  margin-top: 0.6rem;
+  margin: 0.3rem 0 0;
+}
+
+.wiki-masthead__search {
+  display: flex;
+  align-items: end;
+  gap: 0.4rem;
+}
+
+.wiki-masthead__search label {
+  min-width: 280px;
+}
+
+.wiki-masthead__search input {
+  border-radius: 2px;
 }
 
 /* === LAYOUT === */
 
 .layout {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 1rem;
   display: grid;
@@ -66,32 +86,16 @@ body {
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 2px;
   padding: 1rem;
-  box-shadow: 0 8px 20px rgba(47, 36, 22, 0.06);
+  box-shadow: none;
 }
 
 .panel h2 {
   margin-top: 0;
-  font-family: "Newsreader", Georgia, serif;
-  font-size: 1.35rem;
-  letter-spacing: -0.01em;
-}
-
-.panel:nth-child(1) {
-  grid-column: 1 / -1;
-}
-
-.panel:nth-child(2) {
-  grid-column: 1 / -1;
-}
-
-.panel:nth-child(3) {
-  grid-column: 1 / 9;
-}
-
-.panel:nth-child(4) {
-  grid-column: 9 / -1;
+  font-family: "Noto Serif", Georgia, serif;
+  font-size: 1.2rem;
+  letter-spacing: 0;
 }
 
 .panel--search-filters {
@@ -141,7 +145,7 @@ input,
 select,
 button {
   font: inherit;
-  border-radius: 10px;
+  border-radius: 2px;
   border: 1px solid var(--line);
   padding: 0.55rem 0.65rem;
   background: #fff;
@@ -149,7 +153,7 @@ button {
 
 textarea {
   font: inherit;
-  border-radius: 10px;
+  border-radius: 2px;
   border: 1px solid var(--line);
   padding: 0.55rem 0.65rem;
   resize: vertical;
@@ -392,49 +396,153 @@ tbody tr:hover {
   line-height: 1.5;
 }
 
+/* === HOME === */
+
+.wiki-home {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 2fr 1fr;
+}
+
+.wiki-home__welcome,
+.wiki-home__box {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0.9rem 1rem;
+}
+
+.wiki-home__welcome {
+  grid-column: 1 / -1;
+}
+
+.wiki-home__welcome h2,
+.wiki-home__box h3 {
+  margin: 0;
+  font-family: "Noto Serif", Georgia, serif;
+}
+
+.wiki-home__welcome h2 {
+  font-size: 1.3rem;
+}
+
+.wiki-home__box h3 {
+  font-size: 1.08rem;
+  border-bottom: 1px solid var(--line-light);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.45rem;
+}
+
+.wiki-home__lede {
+  margin-top: 0;
+  color: var(--muted);
+}
+
+.wiki-home__box ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  line-height: 1.5;
+}
+
+.wiki-home__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.wiki-link-btn {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: #eaecf0;
+  color: var(--text);
+  font-weight: 600;
+  padding: 0.42rem 0.75rem;
+}
+
+.wiki-link-btn:hover {
+  background: #dfe2e7;
+}
+
+.wiki-home__box--featured {
+  grid-column: 1 / 2;
+}
+
+.wiki-home__box--on-this-day {
+  grid-column: 2 / 3;
+}
+
+.wiki-home__box--news {
+  grid-column: 1 / 2;
+}
+
+.wiki-home__box--did-you-know {
+  grid-column: 2 / 3;
+}
+
+.wiki-home__box--stats {
+  grid-column: 1 / -1;
+}
+
+.wiki-home__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.wiki-home__stats article {
+  border: 1px solid var(--line-light);
+  border-radius: 2px;
+  background: #f8f9fa;
+  padding: 0.6rem;
+}
+
 /* === TAB BAR === */
 
 .tab-bar {
   display: flex;
-  gap: 0.4rem;
-  max-width: 1200px;
+  gap: 0;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 0.2rem 1rem 0.5rem;
-  border-bottom: 1px solid var(--line);
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--line-light);
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--bg);
-  background: color-mix(in srgb, var(--bg) 88%, white);
-  backdrop-filter: blur(2px);
+  background: #f8f9fa;
 }
 
 .tab-bar__item {
-  background: transparent;
-  border: 1px solid transparent;
-  padding: 0.55rem 1rem;
+  background: #eaecf0;
+  border: 1px solid var(--line-light);
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+  padding: 0.5rem 0.9rem;
   font: inherit;
-  font-weight: 700;
-  color: var(--muted);
+  font-weight: 600;
+  color: var(--text);
   cursor: pointer;
-  border-radius: 999px;
-  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+  transition: background-color 0.15s;
+  margin: 0.25rem 0.25rem 0;
 }
 
 .tab-bar__item:hover {
-  color: var(--text);
-  background: var(--bg-elevated);
-  border-color: #d9d0bf;
+  background: #dfe2e7;
 }
 
 .tab-bar__item--active {
-  color: #fff;
-  background: var(--accent);
-  border-color: var(--accent);
+  color: var(--text);
+  background: #fff;
+  border-color: var(--line-light);
+  position: relative;
+  top: 1px;
 }
 
 .tab-bar__item--active:hover {
-  background: var(--accent-strong);
+  background: #fff;
 }
 
 /* === TAB CONTENT === */
@@ -835,9 +943,33 @@ tbody tr:hover {
 /* === RESPONSIVE === */
 
 @media (max-width: 900px) {
-  .panel:nth-child(3),
-  .panel:nth-child(4) {
+  .wiki-masthead {
+    grid-template-columns: 1fr;
+  }
+
+  .wiki-masthead__search {
+    width: 100%;
+  }
+
+  .wiki-masthead__search label {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .wiki-home {
+    grid-template-columns: 1fr;
+  }
+
+  .wiki-home__box--featured,
+  .wiki-home__box--on-this-day,
+  .wiki-home__box--news,
+  .wiki-home__box--did-you-know,
+  .wiki-home__box--stats {
     grid-column: 1 / -1;
+  }
+
+  .wiki-home__stats {
+    grid-template-columns: 1fr;
   }
 
   .panel--search-results,
@@ -873,5 +1005,6 @@ tbody tr:hover {
 
   .tab-bar {
     overflow-x: auto;
+    white-space: nowrap;
   }
 }

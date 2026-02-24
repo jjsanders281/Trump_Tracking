@@ -1,7 +1,7 @@
 // === STATE ===
 
 const state = {
-  activeTab: "search",
+  activeTab: "home",
   items: [],
   selectedResultId: null,
   dashboardData: null,
@@ -149,6 +149,7 @@ function switchTab(tabName) {
   }
 
   const tabIds = {
+    home: "tabHome",
     search: "tabSearch",
     dashboard: "tabDashboard",
     intake: "tabIntake",
@@ -162,6 +163,7 @@ function switchTab(tabName) {
 
   if (tabName === "dashboard") loadDashboard();
   if (tabName === "review") loadReviewQueue();
+  if (tabName === "home") loadHomeHighlights();
 }
 
 byId("tabBar").addEventListener("click", (e) => {
@@ -187,15 +189,79 @@ byId("tabBar").addEventListener("keydown", (e) => {
   switchTab(next.dataset.tab);
 });
 
+const homeQuickSearchForm = byId("homeQuickSearchForm");
+if (homeQuickSearchForm) {
+  homeQuickSearchForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const query = byId("homeQuickSearchInput")?.value?.trim() ?? "";
+    if (query) byId("q").value = query;
+    switchTab("search");
+    runSearch();
+  });
+}
+
+for (const btn of document.querySelectorAll("[data-home-nav]")) {
+  btn.addEventListener("click", () => {
+    const target = btn.dataset.homeNav;
+    if (!target) return;
+    switchTab(target);
+    if (target === "search") runSearch();
+  });
+}
+
 // === SEARCH (existing logic, unchanged) ===
+
+function setTextIfPresent(id, value) {
+  const el = byId(id);
+  if (!el) return;
+  el.textContent = value;
+}
 
 async function loadSummary() {
   const res = await fetch("/api/dashboard/summary");
   const data = await res.json();
 
-  byId("totalClaims").textContent = data.total_claims;
-  byId("verifiedClaims").textContent = data.verified_claims;
-  byId("contradictionLinks").textContent = data.contradiction_links;
+  setTextIfPresent("totalClaims", data.total_claims);
+  setTextIfPresent("verifiedClaims", data.verified_claims);
+  setTextIfPresent("contradictionLinks", data.contradiction_links);
+  setTextIfPresent("homeTotalClaims", data.total_claims);
+  setTextIfPresent("homeVerifiedClaims", data.verified_claims);
+  setTextIfPresent("homeContradictionLinks", data.contradiction_links);
+}
+
+async function loadHomeHighlights() {
+  const newsList = byId("homeNewsList");
+  const didYouKnowList = byId("homeDidYouKnowList");
+  if (!newsList || !didYouKnowList) return;
+
+  try {
+    const res = await fetch("/api/claims/search?verified_only=true&limit=8");
+    if (!res.ok) return;
+    const payload = await res.json();
+    const items = payload.items || [];
+    const latest = items.slice(0, 4);
+    const facts = items.slice(4, 8);
+
+    if (latest.length) {
+      newsList.innerHTML = latest
+        .map(
+          (item) =>
+            `<li><strong>${escapeHtml(fmtDate(item.statement.occurred_at))}:</strong> ${escapeHtml(item.claim_text.slice(0, 140))}${item.claim_text.length > 140 ? "..." : ""}</li>`,
+        )
+        .join("");
+    }
+
+    if (facts.length) {
+      didYouKnowList.innerHTML = facts
+        .map((item) => {
+          const verdict = item.latest_assessment?.verdict ?? "unverified";
+          return `<li><strong>${escapeHtml(item.topic)}:</strong> ${escapeHtml(item.claim_text.slice(0, 120))}${item.claim_text.length > 120 ? "..." : ""} <span class="badge ${verdictBadgeClass(verdict)}">${escapeHtml(verdict)}</span></li>`;
+        })
+        .join("");
+    }
+  } catch (_error) {
+    // Preserve static placeholders if home highlight request fails.
+  }
 }
 
 function buildQuery() {
