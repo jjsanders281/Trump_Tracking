@@ -17,13 +17,16 @@ The app runs on **Railway**. There are two ways to deploy:
 This is the standard workflow. Railway watches the GitHub repo and auto-deploys.
 
 ```bash
-# 1. Stage the changed files (be specific, don't use git add -A)
+# 1. If frontend files changed, bump static asset version to bust browser cache
+make bust-assets
+
+# 2. Stage changed files (be specific, don't use git add -A)
 git add backend/app/static/styles.css backend/app/static/app.js backend/app/static/index.html
 
-# 2. Commit with a descriptive message
+# 3. Commit with a descriptive message
 git commit -m "Improve dashboard interactivity and review queue UX"
 
-# 3. Push to main — Railway auto-deploys on push
+# 4. Push to main — Railway auto-deploys on push
 git push origin main
 ```
 
@@ -71,6 +74,9 @@ make lint
 # Run tests (must all pass)
 make test
 
+# If frontend changed, bust static asset cache key in index.html
+make bust-assets
+
 # Optionally start the dev server and verify locally
 make dev
 # Then visit http://localhost:8000 and check your changes
@@ -110,8 +116,10 @@ These are set in Railway and do not need to be changed for normal deploys:
 - Auto-deploy may be paused — check Railway project settings
 
 ### Site shows old version after deploy
+- Confirm cache-busting query param is present in HTML:
+  - `curl -s https://trump-tracking-app-production.up.railway.app/ | rg "styles.css\\?v=|app.js\\?v="`
+- If missing, rerun `make bust-assets`, commit, and push.
 - Hard-refresh the browser: `Ctrl+Shift+R` / `Cmd+Shift+R`
-- Static files may be cached — the app doesn't use cache-busting hashes yet
 
 ### Railway CLI errors
 ```bash
@@ -130,6 +138,8 @@ railway status
 |------|---------|
 | Deploy via git | `git push origin main` |
 | Deploy via CLI | `railway up --detach` |
+| Bump static cache key | `make bust-assets` |
+| Full deploy prep | `make deploy-prep` |
 | Check prod health | `curl https://trump-tracking-app-production.up.railway.app/health` |
 | View prod logs | `railway logs` |
 | Run tests first | `make test` |

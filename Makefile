@@ -1,4 +1,4 @@
-.PHONY: dev test lint format seed ingest ingest-backlog
+.PHONY: dev test lint format seed ingest ingest-backlog bust-assets deploy-prep
 
 dev:
 	python3 -m uvicorn backend.app.main:app --reload --reload-dir backend --reload-exclude ".venv/*"
@@ -20,3 +20,9 @@ ingest:
 
 ingest-backlog:
 	python backend/scripts/daily_pipeline.py --mode backlog --max-items 500
+
+bust-assets:
+	./scripts/bump_static_asset_version.sh
+
+deploy-prep: lint test bust-assets
+	@echo "Deploy prep complete. Commit and push to main to trigger Railway deploy."
