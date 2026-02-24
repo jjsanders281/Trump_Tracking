@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trump Tracking Research Database</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20260224202022" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260224203157" />
   </head>
   <body>
     <header class="wiki-masthead hero">
@@ -150,6 +150,20 @@
             <p class="mp-box__note mp-box__note--dates" id="homeLieTrackerDates">
               Term start and campaign launch windows are shown in UTC dates.
             </p>
+            <h3 class="mp-box__subhead">Verdict & Topic Trends</h3>
+            <p class="mp-box__note">
+              Rolling distribution from currently verified entries.
+            </p>
+            <div class="home-trend-grid">
+              <section class="home-trend-panel">
+                <h4>Verdict Mix</h4>
+                <div id="homeVerdictBars"></div>
+              </section>
+              <section class="home-trend-panel">
+                <h4>Top Topics</h4>
+                <div id="homeTopicBars"></div>
+              </section>
+            </div>
           </section>
         </div>
       </div>
@@ -565,6 +579,6 @@
       </div>
     </main>
 
-    <script src="/static/app.js?v=20260224202022" type="module"></script>
+    <script src="/static/app.js?v=20260224203157" type="module"></script>
   </body>
 </html>

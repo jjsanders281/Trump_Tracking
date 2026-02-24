@@ -326,6 +326,9 @@ async function loadSummary() {
     "homeLieTrackerDates",
     `This term since ${termStart} · Campaign launch since ${campaignLaunch} (UTC dates).`,
   );
+
+  renderBarChart("homeVerdictBars", data.verdict_breakdown || {}, null);
+  renderBarChart("homeTopicBars", data.topic_breakdown || {}, null);
 }
 
 async function loadHomeHighlights() {
@@ -1271,6 +1274,7 @@ function openDashboardDetail(detailName) {
 
 function renderBarChart(containerId, dataObj, clickField) {
   const container = byId(containerId);
+  if (!container) return;
   const entries = Object.entries(dataObj);
   if (!entries.length) {
     container.innerHTML = '<p class="muted">No data yet.</p>';
