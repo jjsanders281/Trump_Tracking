@@ -196,6 +196,17 @@ No emotional commentary.
 - Add initial topic tags and suggested impact score (1-5).
 - Capture dispute-critical specifics (counts, dates, legal outcomes, procedural details) so Fact-Check can build a robust public rebuttal.
 
+### Required Source Depth for Election Claims
+- Do not rely on media fact-check links as the primary evidence chain.
+- Every election-fraud or election-integrity claim packet must include direct government records, such as:
+  - state election board/department guidance or certification pages
+  - official county/state canvass records or returns portals
+  - National Archives certificates of ascertainment
+  - court filings/orders when litigation is part of the claim
+- Include at least two Tier 1 government/official records before adding Tier 2 media corroboration.
+- If a Tier 2 source is included, add a note explaining which official record it is corroborating.
+- If official records are not available, mark the claim as blocked for verification and document exactly which record is missing.
+
 ## Inputs
 - Source policy: `docs/source_tier_policy.md`
 - Scope rules: `README.md`
