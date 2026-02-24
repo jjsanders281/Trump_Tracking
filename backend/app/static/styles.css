@@ -398,60 +398,162 @@ tbody tr:hover {
 
 /* === HOME === */
 
-.wiki-home {
+.wiki-mainpage {
   max-width: 1240px;
   margin: 0 auto;
   padding: 1rem;
+}
+
+.wiki-mainpage__intro {
+  border: 1px solid var(--line-light);
+  background: #f8f9fa;
+  border-radius: 2px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.wiki-mainpage__intro p {
+  margin: 0;
+}
+
+.wiki-mainpage__intro-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.55rem !important;
+}
+
+.wiki-mainpage__grid {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: 2fr 1fr;
 }
 
-.wiki-home__welcome,
-.wiki-home__box {
-  background: var(--panel);
+.mp-box {
   border: 1px solid var(--line);
   border-radius: 2px;
-  padding: 0.9rem 1rem;
+  background: var(--panel);
+  padding: 0.75rem 1rem 0.9rem;
 }
 
-.wiki-home__welcome {
-  grid-column: 1 / -1;
-}
-
-.wiki-home__welcome h2,
-.wiki-home__box h3 {
-  margin: 0;
+.mp-box__title {
+  margin: 0 -1rem 0.55rem;
+  padding: 0.33rem 1rem 0.38rem;
   font-family: "Noto Serif", Georgia, serif;
+  font-size: 1.02rem;
+  border-bottom: 1px solid var(--line);
 }
 
-.wiki-home__welcome h2 {
-  font-size: 1.3rem;
+.mp-box ul {
+  margin: 0;
+  padding-left: 1.12rem;
+  line-height: 1.48;
 }
 
-.wiki-home__box h3 {
-  font-size: 1.08rem;
-  border-bottom: 1px solid var(--line-light);
-  padding-bottom: 0.35rem;
-  margin-bottom: 0.45rem;
+.mp-box li {
+  margin-bottom: 0.4rem;
 }
 
-.wiki-home__lede {
-  margin-top: 0;
+.mp-box--featured {
+  grid-column: 1 / 2;
+  border-color: #b8d8b8;
+}
+
+.mp-box--featured .mp-box__title {
+  background: #eaf5ea;
+  border-bottom-color: #b8d8b8;
+}
+
+.mp-box--news {
+  grid-column: 2 / 3;
+  border-color: #c9d8f7;
+}
+
+.mp-box--news .mp-box__title {
+  background: #edf3ff;
+  border-bottom-color: #c9d8f7;
+}
+
+.mp-box--did-you-know {
+  grid-column: 1 / 2;
+  border-color: #b8d8b8;
+}
+
+.mp-box--did-you-know .mp-box__title {
+  background: #eaf5ea;
+  border-bottom-color: #b8d8b8;
+}
+
+.mp-box--on-this-day {
+  grid-column: 2 / 3;
+  border-color: #f0d5a9;
+}
+
+.mp-box--on-this-day .mp-box__title {
+  background: #fff5e8;
+  border-bottom-color: #f0d5a9;
+}
+
+.mp-box--portals {
+  grid-column: 1 / 2;
+  border-color: #d7dbe1;
+}
+
+.mp-box--portals .mp-box__title {
+  background: #f3f4f6;
+  border-bottom-color: #d7dbe1;
+}
+
+.mp-box--stats {
+  grid-column: 2 / 3;
+  border-color: #d7dbe1;
+}
+
+.mp-box--stats .mp-box__title {
+  background: #f3f4f6;
+  border-bottom-color: #d7dbe1;
+}
+
+.mp-featured h3 {
+  margin: 0 0 0.4rem;
+  font-family: "Noto Serif", Georgia, serif;
+  font-size: 1.1rem;
+}
+
+.mp-featured p {
+  margin: 0 0 0.5rem;
+}
+
+.mp-featured__meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.mp-on-this-day__date {
+  margin: 0 0 0.45rem;
+  font-size: 0.92rem;
+  font-weight: 700;
   color: var(--muted);
 }
 
-.wiki-home__box ul {
-  margin: 0;
-  padding-left: 1.1rem;
-  line-height: 1.5;
+.mp-portal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
 }
 
-.wiki-home__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-top: 0.65rem;
+.mp-portal-link {
+  display: block;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line-light);
+  color: var(--accent);
+  background: #fff;
+  text-decoration: none;
+  border-radius: 2px;
+}
+
+.mp-portal-link:hover {
+  background: #eef3ff;
 }
 
 .wiki-link-btn {
@@ -467,24 +569,10 @@ tbody tr:hover {
   background: #dfe2e7;
 }
 
-.wiki-home__box--featured {
-  grid-column: 1 / 2;
-}
-
-.wiki-home__box--on-this-day {
-  grid-column: 2 / 3;
-}
-
-.wiki-home__box--news {
-  grid-column: 1 / 2;
-}
-
-.wiki-home__box--did-you-know {
-  grid-column: 2 / 3;
-}
-
-.wiki-home__box--stats {
-  grid-column: 1 / -1;
+.wiki-link-btn--subtle {
+  background: #fff;
+  color: var(--accent);
+  border-color: var(--line-light);
 }
 
 .wiki-home__stats {
@@ -956,16 +1044,21 @@ tbody tr:hover {
     width: 100%;
   }
 
-  .wiki-home {
+  .wiki-mainpage__grid {
     grid-template-columns: 1fr;
   }
 
-  .wiki-home__box--featured,
-  .wiki-home__box--on-this-day,
-  .wiki-home__box--news,
-  .wiki-home__box--did-you-know,
-  .wiki-home__box--stats {
+  .mp-box--featured,
+  .mp-box--news,
+  .mp-box--did-you-know,
+  .mp-box--on-this-day,
+  .mp-box--portals,
+  .mp-box--stats {
     grid-column: 1 / -1;
+  }
+
+  .mp-portal-grid {
+    grid-template-columns: 1fr;
   }
 
   .wiki-home__stats {

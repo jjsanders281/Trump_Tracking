@@ -201,7 +201,8 @@ if (homeQuickSearchForm) {
 }
 
 for (const btn of document.querySelectorAll("[data-home-nav]")) {
-  btn.addEventListener("click", () => {
+  btn.addEventListener("click", (event) => {
+    event.preventDefault();
     const target = btn.dataset.homeNav;
     if (!target) return;
     switchTab(target);
@@ -215,6 +216,12 @@ function setTextIfPresent(id, value) {
   const el = byId(id);
   if (!el) return;
   el.textContent = value;
+}
+
+function clipText(value, max = 160) {
+  const text = String(value ?? "").trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max)}...`;
 }
 
 async function loadSummary() {
@@ -232,15 +239,50 @@ async function loadSummary() {
 async function loadHomeHighlights() {
   const newsList = byId("homeNewsList");
   const didYouKnowList = byId("homeDidYouKnowList");
-  if (!newsList || !didYouKnowList) return;
+  const featuredTitle = byId("homeFeaturedTitle");
+  const featuredSummary = byId("homeFeaturedSummary");
+  const featuredMeta = byId("homeFeaturedMeta");
+  const onThisDayDate = byId("homeOnThisDayDate");
+  const onThisDayList = byId("homeOnThisDayList");
+  if (
+    !newsList || !didYouKnowList || !featuredTitle || !featuredSummary || !featuredMeta
+    || !onThisDayDate || !onThisDayList
+  ) return;
 
   try {
-    const res = await fetch("/api/claims/search?verified_only=true&limit=8");
+    const res = await fetch("/api/claims/search?verified_only=true&limit=30");
     if (!res.ok) return;
     const payload = await res.json();
     const items = payload.items || [];
-    const latest = items.slice(0, 4);
-    const facts = items.slice(4, 8);
+    if (!items.length) return;
+
+    const featured = items[0];
+    const latest = items.slice(1, 5);
+    const facts = [...items]
+      .sort((a, b) => (b.statement?.impact_score ?? 0) - (a.statement?.impact_score ?? 0))
+      .slice(0, 4);
+
+    const now = new Date();
+    const month = now.getUTCMonth();
+    const day = now.getUTCDate();
+    const monthLabel = now.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+    const onThisDayItems = items
+      .filter((item) => {
+        const d = new Date(item.statement.occurred_at);
+        return d.getUTCMonth() === month && d.getUTCDate() === day;
+      })
+      .slice(0, 3);
+    const onThisDayFallback = items.slice(0, 3);
+    const onThisDay = onThisDayItems.length ? onThisDayItems : onThisDayFallback;
+
+    const rationaleText = featured.latest_assessment?.rationale ?? "";
+    const rationaleExcerpt = rationaleText.split("\n").find((line) => line.trim().startsWith("- "))
+      || clipText(rationaleText.replace(/\s+/g, " "), 220);
+
+    featuredTitle.textContent = featured.claim_text;
+    featuredSummary.textContent = rationaleExcerpt.replace(/^- /, "");
+    featuredMeta.textContent = `${fmtDate(featured.statement.occurred_at)} · ${featured.topic} · ${featured.latest_assessment?.verdict ?? "unverified"}`;
+    onThisDayDate.textContent = monthLabel;
 
     if (latest.length) {
       newsList.innerHTML = latest
@@ -259,6 +301,10 @@ async function loadHomeHighlights() {
         })
         .join("");
     }
+
+    onThisDayList.innerHTML = onThisDay
+      .map((item) => `<li><strong>${escapeHtml(fmtDate(item.statement.occurred_at))}:</strong> ${escapeHtml(clipText(item.statement.quote, 150))}</li>`)
+      .join("");
   } catch (_error) {
     // Preserve static placeholders if home highlight request fails.
   }

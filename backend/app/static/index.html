@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trump Tracking Research Database</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20260224e" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260224f" />
   </head>
   <body>
     <header class="wiki-masthead hero">
@@ -40,72 +40,86 @@
     <!-- TAB: HOME -->
     <main class="tab-content tab-content--active" id="tabHome" role="tabpanel"
       aria-labelledby="tabBtnHome">
-      <div class="wiki-home">
-        <section class="wiki-home__welcome">
-          <h2>Welcome to Trump Tracking</h2>
+      <div class="wiki-mainpage">
+        <section class="wiki-mainpage__intro">
           <p>
-            This project is organized like a reference portal: each entry links quote, claim,
-            verdict, and source record in one place.
+            <strong>Welcome to Trump Tracking,</strong> a reference-style archive of
+            source-backed claim reviews. Explore verified claim records, evidence chains, and
+            contradiction history.
           </p>
-          <div class="wiki-home__links">
-            <button class="wiki-link-btn" data-home-nav="search">Browse Claims</button>
-            <button class="wiki-link-btn" data-home-nav="dashboard">View Trends</button>
-            <button class="wiki-link-btn" data-home-nav="review">Open Review Queue</button>
-          </div>
-        </section>
-
-        <section class="wiki-home__box wiki-home__box--featured">
-          <h3>Featured Case File</h3>
-          <p class="wiki-home__lede">
-            Weekly spotlight format for one high-impact claim with source trail and timeline.
+          <p class="wiki-mainpage__intro-links">
+            <button class="wiki-link-btn" data-home-nav="search">Browse claims</button>
+            <button class="wiki-link-btn" data-home-nav="dashboard">View dashboards</button>
+            <button class="wiki-link-btn" data-home-nav="review">Open review queues</button>
           </p>
-          <ul>
-            <li><strong>Status:</strong> Placeholder for editorially selected feature.</li>
-            <li><strong>Scope:</strong> Claim chain, contradictions, and key source documents.</li>
-            <li><strong>Next:</strong> Add final copy and source index.</li>
-          </ul>
         </section>
 
-        <section class="wiki-home__box wiki-home__box--on-this-day">
-          <h3>On This Day</h3>
-          <ul>
-            <li><strong>Yearly timeline placeholder:</strong> major claims published on this date.</li>
-            <li><strong>Context card placeholder:</strong> what happened and why it mattered.</li>
-            <li><strong>Source slot placeholder:</strong> primary transcript/video/doc link.</li>
-          </ul>
-        </section>
-
-        <section class="wiki-home__box wiki-home__box--news">
-          <h3>In The News Right Now</h3>
-          <ul id="homeNewsList">
-            <li>Latest verified claim summaries will appear here.</li>
-          </ul>
-        </section>
-
-        <section class="wiki-home__box wiki-home__box--did-you-know">
-          <h3>Did You Know</h3>
-          <ul id="homeDidYouKnowList">
-            <li>Notable source-backed facts and contradiction links will appear here.</li>
-          </ul>
-        </section>
-
-        <section class="wiki-home__box wiki-home__box--stats">
-          <h3>Archive Snapshot</h3>
-          <div class="wiki-home__stats">
-            <article>
-              <p class="label">Total Claims</p>
-              <p class="value" id="homeTotalClaims">-</p>
+        <div class="wiki-mainpage__grid">
+          <section class="mp-box mp-box--featured">
+            <h2 class="mp-box__title">From Today’s Featured File</h2>
+            <article class="mp-featured">
+              <h3 id="homeFeaturedTitle">Featured claim placeholder</h3>
+              <p id="homeFeaturedSummary">
+                A high-impact claim with its source chain, verdict rationale, and contradiction
+                context will appear here.
+              </p>
+              <p class="mp-featured__meta" id="homeFeaturedMeta">Editorial slot pending selection.</p>
+              <button class="wiki-link-btn wiki-link-btn--subtle" data-home-nav="search">
+                Open Search Archive
+              </button>
             </article>
-            <article>
-              <p class="label">Verified Claims</p>
-              <p class="value" id="homeVerifiedClaims">-</p>
-            </article>
-            <article>
-              <p class="label">Contradictions</p>
-              <p class="value" id="homeContradictionLinks">-</p>
-            </article>
-          </div>
-        </section>
+          </section>
+
+          <section class="mp-box mp-box--news">
+            <h2 class="mp-box__title">In The News Right Now</h2>
+            <ul id="homeNewsList">
+              <li>Recent verified claim summaries will appear here.</li>
+            </ul>
+          </section>
+
+          <section class="mp-box mp-box--did-you-know">
+            <h2 class="mp-box__title">Did You Know ...</h2>
+            <ul id="homeDidYouKnowList">
+              <li>Notable source-backed facts and contradiction links will appear here.</li>
+            </ul>
+          </section>
+
+          <section class="mp-box mp-box--on-this-day">
+            <h2 class="mp-box__title">On This Day</h2>
+            <p class="mp-on-this-day__date" id="homeOnThisDayDate">Month Day</p>
+            <ul id="homeOnThisDayList">
+              <li>Date-indexed entries and timeline highlights will appear here.</li>
+            </ul>
+          </section>
+
+          <section class="mp-box mp-box--portals">
+            <h2 class="mp-box__title">Reference Portals</h2>
+            <div class="mp-portal-grid">
+              <a class="mp-portal-link" href="#" data-home-nav="search">Claim Index</a>
+              <a class="mp-portal-link" href="#" data-home-nav="dashboard">Verdict Trends</a>
+              <a class="mp-portal-link" href="#" data-home-nav="review">Editorial Queue</a>
+              <a class="mp-portal-link" href="#" data-home-nav="intake">Research Intake</a>
+            </div>
+          </section>
+
+          <section class="mp-box mp-box--stats">
+            <h2 class="mp-box__title">Archive Snapshot</h2>
+            <div class="wiki-home__stats">
+              <article>
+                <p class="label">Total Claims</p>
+                <p class="value" id="homeTotalClaims">-</p>
+              </article>
+              <article>
+                <p class="label">Verified Claims</p>
+                <p class="value" id="homeVerifiedClaims">-</p>
+              </article>
+              <article>
+                <p class="label">Contradictions</p>
+                <p class="value" id="homeContradictionLinks">-</p>
+              </article>
+            </div>
+          </section>
+        </div>
       </div>
     </main>
 
@@ -400,6 +414,6 @@
       </div>
     </main>
 
-    <script src="/static/app.js?v=20260224e" type="module"></script>
+    <script src="/static/app.js?v=20260224f" type="module"></script>
   </body>
 </html>
