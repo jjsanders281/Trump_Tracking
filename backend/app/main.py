@@ -183,6 +183,18 @@ def search_claims(
     return crud.search_claims(db=db, filters=filters, limit=limit, offset=offset)
 
 
+@app.get("/api/topics/{topic_slug}", response_model=schemas.TopicPageRead)
+def get_topic_page(
+    topic_slug: str,
+    limit: int = Query(default=200, ge=1, le=500),
+    db: Session = Depends(get_db),
+) -> schemas.TopicPageRead:
+    topic_page = crud.topic_page(db=db, topic_slug=topic_slug, limit=limit)
+    if topic_page is None:
+        raise HTTPException(status_code=404, detail="Topic page not found")
+    return topic_page
+
+
 @app.get("/api/claims/{claim_id}", response_model=schemas.ClaimRead)
 def get_claim(claim_id: int, db: Session = Depends(get_db)) -> schemas.ClaimRead:
     claim = crud.get_claim(db, claim_id)

@@ -10,6 +10,10 @@ const state = {
   reviewTotal: 0,
   reviewOffset: 0,
   expandedCardId: null,
+  articleView: null,
+  articleRequestSeq: 0,
+  claimCache: new Map(),
+  topicCache: new Map(),
 };
 
 // === UTILITIES ===
@@ -151,6 +155,7 @@ function switchTab(tabName) {
   const tabIds = {
     home: "tabHome",
     search: "tabSearch",
+    article: "tabArticle",
     dashboard: "tabDashboard",
     intake: "tabIntake",
     review: "tabReview",
@@ -168,7 +173,10 @@ function switchTab(tabName) {
 
 byId("tabBar").addEventListener("click", (e) => {
   const btn = e.target.closest(".tab-bar__item");
-  if (btn) switchTab(btn.dataset.tab);
+  if (!btn) return;
+  const tab = btn.dataset.tab;
+  if (tab !== "article") clearHashRoute();
+  switchTab(tab);
 });
 
 byId("tabBar").addEventListener("keydown", (e) => {
@@ -186,7 +194,9 @@ byId("tabBar").addEventListener("keydown", (e) => {
   e.preventDefault();
   const next = tabs[nextIndex];
   next.focus();
-  switchTab(next.dataset.tab);
+  const nextTab = next.dataset.tab;
+  if (nextTab !== "article") clearHashRoute();
+  switchTab(nextTab);
 });
 
 const homeQuickSearchForm = byId("homeQuickSearchForm");
@@ -195,6 +205,7 @@ if (homeQuickSearchForm) {
     event.preventDefault();
     const query = byId("homeQuickSearchInput")?.value?.trim() ?? "";
     if (query) byId("q").value = query;
+    clearHashRoute();
     switchTab("search");
     runSearch();
   });
@@ -205,6 +216,7 @@ for (const btn of document.querySelectorAll("[data-home-nav]")) {
     event.preventDefault();
     const target = btn.dataset.homeNav;
     if (!target) return;
+    clearHashRoute();
     switchTab(target);
     if (target === "search") runSearch();
   });
@@ -222,6 +234,61 @@ function clipText(value, max = 160) {
   const text = String(value ?? "").trim();
   if (text.length <= max) return text;
   return `${text.slice(0, max)}...`;
+}
+
+function buildClaimUrl(claimId) {
+  return `#/claim/${claimId}`;
+}
+
+function buildTopicUrl(topicSlug) {
+  return `#/topic/${encodeURIComponent(topicSlug)}`;
+}
+
+function claimLinkHtml(item, label) {
+  const text = label ?? clipText(item.claim_text, 140);
+  return `<a class="wiki-inline-link" href="${buildClaimUrl(item.id)}">${escapeHtml(text)}</a>`;
+}
+
+function topicLinkHtml(item, label) {
+  const topicSlug = item.canonical_topic_slug || "unknown";
+  const text = label ?? item.topic;
+  return `<a class="wiki-inline-link" href="${buildTopicUrl(topicSlug)}">${escapeHtml(text)}</a>`;
+}
+
+function parseHashRoute() {
+  const rawHash = window.location.hash.replace(/^#\/?/, "");
+  if (!rawHash) return null;
+
+  const parts = rawHash.split("/").filter(Boolean);
+  if (parts.length < 2) return null;
+  const [kind, ...rest] = parts;
+
+  if (kind === "claim") {
+    const claimId = parseInt(rest[0], 10);
+    if (Number.isNaN(claimId) || claimId <= 0) return null;
+    return { kind: "claim", claimId };
+  }
+
+  if (kind === "topic") {
+    try {
+      const topicSlug = decodeURIComponent(rest.join("/"));
+      if (!topicSlug) return null;
+      return { kind: "topic", topicSlug };
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function clearHashRoute() {
+  if (!window.location.hash) return;
+  history.replaceState(
+    null,
+    "",
+    `${window.location.pathname}${window.location.search}`,
+  );
 }
 
 async function loadSummary() {
@@ -292,16 +359,16 @@ async function loadHomeHighlights() {
     const rationaleExcerpt = rationaleText.split("\n").find((line) => line.trim().startsWith("- "))
       || clipText(rationaleText.replace(/\s+/g, " "), 220);
 
-    featuredTitle.textContent = featured.claim_text;
+    featuredTitle.innerHTML = claimLinkHtml(featured, featured.claim_text);
     featuredSummary.textContent = rationaleExcerpt.replace(/^- /, "");
-    featuredMeta.textContent = `${fmtDate(featured.statement.occurred_at)} · ${featured.topic} · ${featured.latest_assessment?.verdict ?? "unverified"}`;
+    featuredMeta.innerHTML = `${escapeHtml(fmtDate(featured.statement.occurred_at))} · ${topicLinkHtml(featured, featured.topic)} · <span class="badge ${verdictBadgeClass(featured.latest_assessment?.verdict ?? "na")}">${escapeHtml(featured.latest_assessment?.verdict ?? "unverified")}</span>`;
     onThisDayDate.textContent = monthLabel;
 
     if (latest.length) {
       newsList.innerHTML = latest
         .map(
           (item) =>
-            `<li><strong>${escapeHtml(fmtDate(item.statement.occurred_at))}:</strong> ${escapeHtml(item.claim_text.slice(0, 140))}${item.claim_text.length > 140 ? "..." : ""}</li>`,
+            `<li><strong>${escapeHtml(fmtDate(item.statement.occurred_at))}:</strong> ${claimLinkHtml(item, clipText(item.claim_text, 140))}</li>`,
         )
         .join("");
     }
@@ -310,13 +377,15 @@ async function loadHomeHighlights() {
       didYouKnowList.innerHTML = facts
         .map((item) => {
           const verdict = item.latest_assessment?.verdict ?? "unverified";
-          return `<li><strong>${escapeHtml(item.topic)}:</strong> ${escapeHtml(item.claim_text.slice(0, 120))}${item.claim_text.length > 120 ? "..." : ""} <span class="badge ${verdictBadgeClass(verdict)}">${escapeHtml(verdict)}</span></li>`;
+          return `<li><strong>${topicLinkHtml(item, item.topic)}:</strong> ${claimLinkHtml(item, clipText(item.claim_text, 120))} <span class="badge ${verdictBadgeClass(verdict)}">${escapeHtml(verdict)}</span></li>`;
         })
         .join("");
     }
 
     onThisDayList.innerHTML = onThisDay
-      .map((item) => `<li><strong>${escapeHtml(fmtDate(item.statement.occurred_at))}:</strong> ${escapeHtml(clipText(item.statement.quote, 150))}</li>`)
+      .map(
+        (item) => `<li><strong>${escapeHtml(fmtDate(item.statement.occurred_at))}:</strong> ${claimLinkHtml(item, clipText(item.statement.quote, 150))}</li>`,
+      )
       .join("");
   } catch (_error) {
     // Preserve static placeholders if home highlight request fails.
@@ -368,12 +437,16 @@ function renderResults(payload) {
     const verdictClass = verdictBadgeClass(item.latest_assessment?.verdict ?? "na");
     tr.innerHTML = `
       <td>${escapeHtml(fmtDate(item.statement.occurred_at))}</td>
-      <td>${escapeHtml(item.topic)}</td>
+      <td>${topicLinkHtml(item, item.topic)}</td>
       <td><span class="badge ${verdictClass}">${escapeHtml(item.latest_assessment?.verdict ?? "n/a")}</span></td>
       <td>${escapeHtml(item.statement.impact_score)}</td>
-      <td>${escapeHtml(item.statement.quote.slice(0, 160))}${item.statement.quote.length > 160 ? "..." : ""}</td>
+      <td>
+        <div>${claimLinkHtml(item, clipText(item.claim_text, 140))}</div>
+        <div class="muted claim-row-quote">${escapeHtml(clipText(item.statement.quote, 120))}</div>
+      </td>
     `;
-    tr.addEventListener("click", () => {
+    tr.addEventListener("click", (event) => {
+      if (event.target.closest("a")) return;
       state.selectedResultId = item.id;
       updateSelectedResultRow();
       renderDetail(item);
@@ -425,9 +498,10 @@ function renderDetail(item) {
     <h2>Claim Detail</h2>
     <div class="detail-block">
       <p><strong>Date:</strong> ${escapeHtml(fmtDate(item.statement.occurred_at))}</p>
+      <p><strong>Topic Dossier:</strong> ${topicLinkHtml(item, item.topic)}</p>
       <p><strong>Venue:</strong> ${escapeHtml(item.statement.venue ?? "Unknown")}</p>
       <p><strong>Quote:</strong> ${escapeHtml(item.statement.quote)}</p>
-      <p><strong>Claim:</strong> ${escapeHtml(item.claim_text)}</p>
+      <p><strong>Claim:</strong> ${claimLinkHtml(item, item.claim_text)}</p>
     </div>
     <div class="detail-block">
       <p><strong>Verdict:</strong> <span class="badge ${verdictClass}">${escapeHtml(latest?.verdict ?? "none")}</span></p>
@@ -442,12 +516,254 @@ function renderDetail(item) {
       <ul>${sources || '<li class="muted">No additional sources.</li>'}</ul>
     </div>
     <div class="detail-actions">
+      <a class="btn-link" href="${buildClaimUrl(item.id)}">Open Claim Article</a>
+      <a class="btn-link btn-link--secondary" href="${buildTopicUrl(item.canonical_topic_slug)}">Open Topic Dossier</a>
       <button class="btn-edit" data-action="edit" data-claim-id="${item.id}">Edit</button>
       ${isFinalized ? `<button class="btn-reopen" data-action="reopen" data-claim-id="${item.id}">Reopen</button>` : ""}
       <button class="btn-danger" data-action="delete" data-claim-id="${item.id}">Delete</button>
     </div>
     <div id="detailFormArea"></div>
   `;
+}
+
+async function fetchClaimForArticle(claimId) {
+  if (state.claimCache.has(claimId)) {
+    return state.claimCache.get(claimId);
+  }
+  const response = await fetch(`/api/claims/${claimId}`);
+  if (!response.ok) {
+    throw new Error(`Claim ${claimId} was not found.`);
+  }
+  const payload = await response.json();
+  state.claimCache.set(claimId, payload);
+  return payload;
+}
+
+async function fetchTopicForArticle(topicSlug) {
+  if (state.topicCache.has(topicSlug)) {
+    return state.topicCache.get(topicSlug);
+  }
+  const response = await fetch(`/api/topics/${encodeURIComponent(topicSlug)}`);
+  if (!response.ok) {
+    throw new Error(`Topic page "${topicSlug}" was not found.`);
+  }
+  const payload = await response.json();
+  state.topicCache.set(topicSlug, payload);
+  return payload;
+}
+
+function renderClaimArticle(item, topicPage) {
+  const panel = byId("articlePanel");
+  const latest = item.latest_assessment;
+  const verdictClass = verdictBadgeClass(latest?.verdict ?? "na");
+  const statusClass = verdictBadgeClass(latest?.publish_status ?? "pending");
+  const relatedClaims = topicPage?.claims?.filter((candidate) => candidate.id !== item.id).slice(0, 8) ?? [];
+
+  const corroboratingSources = item.sources.length
+    ? item.sources.map(
+      (source) =>
+        `<li>
+          <a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.publisher)}</a>
+          (Tier ${escapeHtml(source.source_tier)})${source.is_primary ? " - primary" : ""}
+          ${source.notes ? `<div class="source-note">${escapeHtml(source.notes)}</div>` : ""}
+        </li>`,
+    ).join("")
+    : '<li class="muted">No additional corroborating sources were provided for this claim entry.</li>';
+
+  const relatedClaimsHtml = relatedClaims.length
+    ? `<ul>${relatedClaims
+      .map(
+        (related) =>
+          `<li><strong>${escapeHtml(fmtDate(related.statement.occurred_at))}:</strong> ${claimLinkHtml(related, clipText(related.claim_text, 180))}</li>`,
+      )
+      .join("")}</ul>`
+    : "<p class=\"muted\">No additional linked entries yet for this recurring topic.</p>";
+
+  panel.innerHTML = `<article class="article-page">
+    <header class="article-page__header">
+      <p class="article-page__kicker">Claim Record #${escapeHtml(item.id)}</p>
+      <h1>${escapeHtml(item.claim_text)}</h1>
+      <p class="article-page__meta">
+        ${escapeHtml(fmtDate(item.statement.occurred_at))} · ${topicLinkHtml(item, item.topic)} ·
+        <span class="badge ${verdictClass}">${escapeHtml(latest?.verdict ?? "unreviewed")}</span>
+        <span class="badge ${statusClass}">${escapeHtml(latest?.publish_status ?? "pending")}</span>
+      </p>
+      <p class="article-page__lead">
+        This page captures the statement, evidence trail, and detailed fact-check rationale for this specific claim instance.
+      </p>
+    </header>
+
+    <section class="article-section">
+      <h2>What Was Said</h2>
+      <p><strong>Quote:</strong> ${escapeHtml(item.statement.quote)}</p>
+      <p><strong>Venue:</strong> ${escapeHtml(item.statement.venue ?? "Unknown")}</p>
+      <p><strong>Context:</strong> ${escapeHtml(item.statement.context ?? "No additional context provided.")}</p>
+      <p><strong>Primary statement source:</strong> <a href="${escapeHtml(item.statement.primary_source_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.statement.primary_source_url)}</a></p>
+    </section>
+
+    <section class="article-section">
+      <h2>Why This Fails</h2>
+      ${renderRationale(latest?.rationale ?? "")}
+    </section>
+
+    <section class="article-section">
+      <h2>Evidence Sources</h2>
+      <ul>${corroboratingSources}</ul>
+    </section>
+
+    <section class="article-section">
+      <h2>Recurring Lie Context</h2>
+      <p>
+        Topic dossier:
+        <a class="wiki-inline-link" href="${buildTopicUrl(item.canonical_topic_slug)}">${escapeHtml(topicPage?.title ?? item.topic)}</a>
+      </p>
+      ${relatedClaimsHtml}
+    </section>
+  </article>`;
+}
+
+function renderTopicArticle(topicPage) {
+  const panel = byId("articlePanel");
+
+  const keyEvidenceHtml = topicPage.key_evidence_points.length
+    ? topicPage.key_evidence_points.map((point) => `<li>${escapeHtml(point)}</li>`).join("")
+    : "<li class=\"muted\">No evidence points were extracted yet.</li>";
+
+  const shutDownHtml = topicPage.shut_down_points.length
+    ? topicPage.shut_down_points.map((point) => `<li>${escapeHtml(point)}</li>`).join("")
+    : "<li class=\"muted\">No rebuttal points were extracted yet.</li>";
+
+  const claimsHtml = topicPage.claims.length
+    ? topicPage.claims
+      .map(
+        (item) => `<li>
+          <strong>${escapeHtml(fmtDate(item.statement.occurred_at))}</strong> ·
+          <span class="badge ${verdictBadgeClass(item.latest_assessment?.verdict ?? "na")}">${escapeHtml(item.latest_assessment?.verdict ?? "n/a")}</span>
+          ${claimLinkHtml(item, clipText(item.claim_text, 210))}
+        </li>`,
+      )
+      .join("")
+    : "<li class=\"muted\">No claims currently linked to this dossier.</li>";
+
+  const sourcesHtml = topicPage.sources.length
+    ? topicPage.sources
+      .map(
+        (source) => `<li>
+          <a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.publisher)}</a>
+          (Tier ${escapeHtml(source.source_tier)})${source.is_primary ? " - primary" : ""}
+          <div class="source-note">
+            Supports claim ID(s): ${escapeHtml(source.supporting_claim_ids.join(", "))}
+            ${source.notes ? ` · ${escapeHtml(source.notes)}` : ""}
+          </div>
+        </li>`,
+      )
+      .join("")
+    : "<li class=\"muted\">No sources listed yet.</li>";
+
+  panel.innerHTML = `<article class="article-page">
+    <header class="article-page__header">
+      <p class="article-page__kicker">Topic Dossier</p>
+      <h1>${escapeHtml(topicPage.title)}</h1>
+      <p class="article-page__meta">
+        First seen ${escapeHtml(fmtDate(topicPage.first_seen))} · Last seen ${escapeHtml(fmtDate(topicPage.last_seen))}
+      </p>
+      <p class="article-page__lead">${escapeHtml(topicPage.summary)}</p>
+      <p class="article-page__summary-row">
+        <strong>Total logged instances:</strong> ${escapeHtml(topicPage.total_claims)} ·
+        <strong>Verified lies:</strong> ${escapeHtml(topicPage.verified_lie_count)}
+      </p>
+      ${topicPage.related_tags.length
+    ? `<p class="article-page__summary-row"><strong>Related tags:</strong> ${topicPage.related_tags.map((tag) => `<span class="badge">${escapeHtml(tag)}</span>`).join(" ")}</p>`
+    : ""}
+    </header>
+
+    <section class="article-section">
+      <h2>Evidence Checklist</h2>
+      <ul>${keyEvidenceHtml}</ul>
+    </section>
+
+    <section class="article-section">
+      <h2>Shut Down False Argument</h2>
+      <ul>${shutDownHtml}</ul>
+    </section>
+
+    <section class="article-section">
+      <h2>All Logged Instances</h2>
+      <ul>${claimsHtml}</ul>
+    </section>
+
+    <section class="article-section">
+      <h2>Primary Records And Sources</h2>
+      <ul>${sourcesHtml}</ul>
+    </section>
+  </article>`;
+}
+
+function renderArticleError(title, message) {
+  const panel = byId("articlePanel");
+  panel.innerHTML = `<h2>${escapeHtml(title)}</h2><p class="muted">${escapeHtml(message)}</p>`;
+}
+
+async function openClaimArticle(claimId) {
+  const requestSeq = ++state.articleRequestSeq;
+  switchTab("article");
+
+  const panel = byId("articlePanel");
+  panel.innerHTML = `<h2>Loading Claim Article...</h2><p class="muted">Fetching claim record #${escapeHtml(claimId)}.</p>`;
+
+  try {
+    const claim = await fetchClaimForArticle(claimId);
+    if (requestSeq !== state.articleRequestSeq) return;
+
+    let topicPage = null;
+    try {
+      topicPage = await fetchTopicForArticle(claim.canonical_topic_slug);
+    } catch (_error) {
+      topicPage = null;
+    }
+
+    if (requestSeq !== state.articleRequestSeq) return;
+    state.articleView = { kind: "claim", claimId };
+    renderClaimArticle(claim, topicPage);
+  } catch (error) {
+    if (requestSeq !== state.articleRequestSeq) return;
+    renderArticleError("Claim Not Found", error.message || "Unable to load claim article.");
+  }
+}
+
+async function openTopicArticle(topicSlug) {
+  const requestSeq = ++state.articleRequestSeq;
+  switchTab("article");
+
+  const panel = byId("articlePanel");
+  panel.innerHTML = `<h2>Loading Topic Dossier...</h2><p class="muted">Fetching dossier: ${escapeHtml(topicSlug)}</p>`;
+
+  try {
+    const topicPage = await fetchTopicForArticle(topicSlug);
+    if (requestSeq !== state.articleRequestSeq) return;
+    state.articleView = { kind: "topic", topicSlug };
+    renderTopicArticle(topicPage);
+  } catch (error) {
+    if (requestSeq !== state.articleRequestSeq) return;
+    renderArticleError("Topic Dossier Not Found", error.message || "Unable to load topic dossier.");
+  }
+}
+
+async function handleHashRoute() {
+  const route = parseHashRoute();
+  if (!route) return false;
+
+  if (route.kind === "claim") {
+    await openClaimArticle(route.claimId);
+    return true;
+  }
+
+  if (route.kind === "topic") {
+    await openTopicArticle(route.topicSlug);
+    return true;
+  }
+
+  return false;
 }
 
 function renderEditForm(item) {
@@ -1200,6 +1516,7 @@ function renderFinalizedDetail(claimId, assessment) {
 // === CROSS-TAB NAVIGATION ===
 
 function navigateToQueue(stage) {
+  clearHashRoute();
   // Switch to the review tab and select the given sub-tab stage
   state.reviewStage = stage;
   state.reviewOffset = 0;
@@ -1214,6 +1531,7 @@ function navigateToQueue(stage) {
 }
 
 function navigateToSearchWithFilter(filterField, filterValue) {
+  clearHashRoute();
   // Reset all search filters first
   byId("q").value = "";
   byId("topic").value = "";
@@ -1460,6 +1778,11 @@ byId("reviewPagination").addEventListener("click", (e) => {
 
 // === INITIALIZATION ===
 
+window.addEventListener("hashchange", () => {
+  handleHashRoute();
+});
+
 switchTab(state.activeTab);
 await loadSummary();
 await runSearch();
+await handleHashRoute();

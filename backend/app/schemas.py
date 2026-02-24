@@ -169,6 +169,7 @@ class ClaimRead(BaseModel):
     id: int
     claim_text: str
     topic: str
+    canonical_topic_slug: str
     claim_kind: str
     statement: StatementRead
     latest_assessment: Optional[AssessmentRead]
@@ -181,6 +182,30 @@ class ClaimSearchResponse(BaseModel):
     limit: int
     offset: int
     items: list[ClaimRead]
+
+
+class TopicSourceRead(BaseModel):
+    publisher: str
+    url: str
+    source_tier: int
+    is_primary: bool
+    supporting_claim_ids: list[int]
+    notes: Optional[str] = None
+
+
+class TopicPageRead(BaseModel):
+    slug: str
+    title: str
+    summary: str
+    first_seen: datetime
+    last_seen: datetime
+    total_claims: int
+    verified_lie_count: int
+    key_evidence_points: list[str]
+    shut_down_points: list[str]
+    related_tags: list[str]
+    claims: list[ClaimRead]
+    sources: list[TopicSourceRead]
 
 
 class LieTrackerSummary(BaseModel):

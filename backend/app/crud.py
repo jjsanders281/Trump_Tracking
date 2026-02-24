@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta
+import re
 from typing import Optional
 
 from sqlalchemy import and_, func, or_
@@ -11,6 +12,124 @@ from . import models, schemas
 LIE_VERDICTS = ("false", "misleading", "contradicted")
 CURRENT_TERM_START_DATE = date(2025, 1, 20)
 CAMPAIGN_LAUNCH_DATE = date(2015, 6, 16)
+
+TOPIC_DOSSIER_METADATA: dict[str, dict[str, str]] = {
+    "2020-election-stolen": {
+        "title": 'The "2020 Election Was Stolen" Lie',
+        "summary_prefix": (
+            "This dossier tracks repeated versions of the claim that the 2020 U.S. "
+            "presidential election was rigged or stolen."
+        ),
+    }
+}
+
+RATIONALE_HEADING_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9 \"'()/-]{2,80}:$")
+BULLET_LINE_PATTERN = re.compile(r"^[-*•]\s+")
+_SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
+
+
+def _slugify(value: str) -> str:
+    slug = _SLUG_PATTERN.sub("-", value.strip().lower()).strip("-")
+    return slug or "unknown"
+
+
+def _claim_tags_lower(claim: models.Claim) -> set[str]:
+    return {tag.name.strip().lower() for tag in claim.tags if tag.name.strip()}
+
+
+def _is_2020_election_stolen_variant(claim: models.Claim) -> bool:
+    topic_slug = _slugify(claim.topic)
+    if topic_slug != "elections":
+        return False
+    tags = _claim_tags_lower(claim)
+    if "2020-election" not in tags:
+        return False
+
+    claim_text = f"{claim.claim_text} {claim.statement.quote}".lower()
+    keywords = (
+        "stolen",
+        "rigged",
+        "fraud",
+        "dead people",
+        "votes changed",
+        "vote dump",
+        "ballot dump",
+        "no vote watchers",
+        "observers",
+    )
+    return any(keyword in claim_text for keyword in keywords)
+
+
+def _canonical_topic_slug(claim: models.Claim) -> str:
+    if _is_2020_election_stolen_variant(claim):
+        return "2020-election-stolen"
+    return _slugify(claim.topic)
+
+
+def _parse_rationale_sections(rationale: str) -> dict[str, str]:
+    text = rationale.strip()
+    if not text:
+        return {}
+
+    sections: dict[str, str] = {}
+    current_title = "Rationale"
+    body_lines: list[str] = []
+
+    for line in text.splitlines():
+        trimmed = line.strip()
+        if RATIONALE_HEADING_PATTERN.match(trimmed):
+            body = "\n".join(body_lines).strip()
+            if body:
+                sections[current_title] = body
+            current_title = trimmed[:-1]
+            body_lines = []
+            continue
+        body_lines.append(line)
+
+    trailing = "\n".join(body_lines).strip()
+    if trailing:
+        sections[current_title] = trailing
+    return sections
+
+
+def _extract_points(text: str) -> list[str]:
+    points: list[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if BULLET_LINE_PATTERN.match(line):
+            line = BULLET_LINE_PATTERN.sub("", line).strip()
+        points.append(line)
+    return points
+
+
+def _collect_topic_points(
+    claims: list[models.Claim],
+    include_if_heading_contains: tuple[str, ...],
+    limit: int,
+) -> list[str]:
+    points: list[str] = []
+    seen: set[str] = set()
+
+    for claim in claims:
+        latest = _latest_assessment(claim.assessments)
+        if latest is None or latest.publish_status != "verified":
+            continue
+        sections = _parse_rationale_sections(latest.rationale)
+        for heading, body in sections.items():
+            heading_lc = heading.lower()
+            if not any(token in heading_lc for token in include_if_heading_contains):
+                continue
+            for point in _extract_points(body):
+                normalized = " ".join(point.lower().split())
+                if normalized in seen:
+                    continue
+                seen.add(normalized)
+                points.append(point)
+                if len(points) >= limit:
+                    return points
+    return points
 
 
 def _latest_assessment(assessments: list[models.Assessment]) -> Optional[models.Assessment]:
@@ -34,6 +153,7 @@ def _serialize_claim(claim: models.Claim) -> schemas.ClaimRead:
         id=claim.id,
         claim_text=claim.claim_text,
         topic=claim.topic,
+        canonical_topic_slug=_canonical_topic_slug(claim),
         claim_kind=claim.claim_kind,
         statement=schemas.StatementRead.model_validate(claim.statement),
         latest_assessment=(
@@ -506,6 +626,179 @@ def get_claim(db: Session, claim_id: int) -> Optional[schemas.ClaimRead]:
     if not claim:
         return None
     return _serialize_claim(claim)
+
+
+def _topic_dossier_title(slug: str, claims: list[models.Claim]) -> str:
+    metadata = TOPIC_DOSSIER_METADATA.get(slug)
+    if metadata and metadata.get("title"):
+        return metadata["title"]
+    topic_label = claims[0].topic if claims else slug.replace("-", " ").title()
+    return f"{topic_label} Lie Dossier"
+
+
+def _topic_dossier_summary(
+    slug: str,
+    total_claims: int,
+    first_seen: datetime,
+    last_seen: datetime,
+    verified_lie_count: int,
+) -> str:
+    prefix = TOPIC_DOSSIER_METADATA.get(slug, {}).get("summary_prefix", "")
+    summary = (
+        f"This page aggregates {total_claims} recorded claim instance(s) from "
+        f"{first_seen.date().isoformat()} through {last_seen.date().isoformat()}. "
+        f"{verified_lie_count} instance(s) are currently verified with verdicts "
+        "marked false, misleading, or contradicted."
+    )
+    if prefix:
+        return f"{prefix} {summary}"
+    return summary
+
+
+def topic_page(
+    db: Session,
+    topic_slug: str,
+    limit: int,
+) -> Optional[schemas.TopicPageRead]:
+    normalized_slug = _slugify(topic_slug)
+    all_claims = (
+        _claim_query_with_relations(db)
+        .join(models.Statement)
+        .order_by(models.Statement.occurred_at.desc(), models.Claim.id.desc())
+        .all()
+    )
+
+    matching = [claim for claim in all_claims if _canonical_topic_slug(claim) == normalized_slug]
+    if not matching:
+        matching = [
+            claim
+            for claim in all_claims
+            if _slugify(claim.topic) == normalized_slug
+            or normalized_slug in {_slugify(tag.name) for tag in claim.tags}
+        ]
+    if not matching:
+        return None
+
+    first_seen = min(claim.statement.occurred_at for claim in matching)
+    last_seen = max(claim.statement.occurred_at for claim in matching)
+    total_claims = len(matching)
+
+    verified_lie_count = 0
+    for claim in matching:
+        latest = _latest_assessment(claim.assessments)
+        if latest and latest.publish_status == "verified" and latest.verdict in LIE_VERDICTS:
+            verified_lie_count += 1
+
+    tag_counts: dict[str, int] = {}
+    source_index: dict[str, dict[str, object]] = {}
+    for claim in matching:
+        for tag in claim.tags:
+            tag_counts[tag.name] = tag_counts.get(tag.name, 0) + 1
+
+        for source in claim.sources:
+            if not source.url:
+                continue
+            entry = source_index.setdefault(
+                source.url,
+                {
+                    "publisher": source.publisher,
+                    "url": source.url,
+                    "source_tier": source.source_tier,
+                    "is_primary": bool(source.is_primary),
+                    "supporting_claim_ids": set(),
+                    "notes": source.notes or "",
+                },
+            )
+            entry["source_tier"] = min(int(entry["source_tier"]), int(source.source_tier))
+            entry["is_primary"] = bool(entry["is_primary"]) or bool(source.is_primary)
+            cast_claim_ids: set[int] = entry["supporting_claim_ids"]  # type: ignore[assignment]
+            cast_claim_ids.add(claim.id)
+            if not entry["notes"] and source.notes:
+                entry["notes"] = source.notes
+
+        primary_url = claim.statement.primary_source_url
+        if primary_url:
+            entry = source_index.setdefault(
+                primary_url,
+                {
+                    "publisher": "Primary statement record",
+                    "url": primary_url,
+                    "source_tier": 1,
+                    "is_primary": True,
+                    "supporting_claim_ids": set(),
+                    "notes": "Original statement or transcript source.",
+                },
+            )
+            cast_claim_ids: set[int] = entry["supporting_claim_ids"]  # type: ignore[assignment]
+            cast_claim_ids.add(claim.id)
+
+    sources = [
+        schemas.TopicSourceRead(
+            publisher=str(payload["publisher"]),
+            url=str(payload["url"]),
+            source_tier=int(payload["source_tier"]),
+            is_primary=bool(payload["is_primary"]),
+            supporting_claim_ids=sorted(payload["supporting_claim_ids"]),  # type: ignore[arg-type]
+            notes=str(payload["notes"]) if payload.get("notes") else None,
+        )
+        for payload in source_index.values()
+    ]
+    sources.sort(key=lambda item: (not item.is_primary, item.source_tier, item.publisher.lower()))
+
+    key_evidence_points = _collect_topic_points(
+        matching,
+        include_if_heading_contains=("evidence", "why this is false"),
+        limit=12,
+    )
+    if not key_evidence_points:
+        key_evidence_points = [
+            (
+                "Official records tied to this topic are linked below; see statement "
+                "sources, election boards, and certification documents."
+            )
+        ]
+
+    shut_down_points = _collect_topic_points(
+        matching,
+        include_if_heading_contains=("shut down", "counterargument"),
+        limit=10,
+    )
+    if not shut_down_points:
+        shut_down_points = [
+            (
+                "The claim is not supported by official records; use the linked primary "
+                "documents to verify the timeline and certified outcomes."
+            )
+        ]
+
+    related_tags = [
+        tag for tag, _count in sorted(tag_counts.items(), key=lambda item: (-item[1], item[0]))[:16]
+    ]
+
+    serialized_claims = [_serialize_claim(claim) for claim in matching[:limit]]
+    title = _topic_dossier_title(normalized_slug, matching)
+    summary = _topic_dossier_summary(
+        normalized_slug,
+        total_claims=total_claims,
+        first_seen=first_seen,
+        last_seen=last_seen,
+        verified_lie_count=verified_lie_count,
+    )
+
+    return schemas.TopicPageRead(
+        slug=normalized_slug,
+        title=title,
+        summary=summary,
+        first_seen=first_seen,
+        last_seen=last_seen,
+        total_claims=total_claims,
+        verified_lie_count=verified_lie_count,
+        key_evidence_points=key_evidence_points,
+        shut_down_points=shut_down_points,
+        related_tags=related_tags,
+        claims=serialized_claims,
+        sources=sources,
+    )
 
 
 def search_claims(

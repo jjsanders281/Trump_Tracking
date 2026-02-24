@@ -338,6 +338,20 @@ tbody tr:hover {
   color: var(--muted);
 }
 
+.wiki-inline-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.wiki-inline-link:hover {
+  text-decoration: underline;
+}
+
+.claim-row-quote {
+  margin-top: 0.22rem;
+  font-size: 0.84rem;
+}
+
 .detail-block {
   border-top: 1px solid var(--line);
   margin-top: 0.8rem;
@@ -940,6 +954,31 @@ tbody tr:hover {
   flex-wrap: wrap;
 }
 
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.84rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.btn-link:hover {
+  background: #eef3ff;
+}
+
+.btn-link--secondary {
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.btn-link--secondary:hover {
+  background: #f1f3f5;
+}
+
 .btn-edit {
   background: #fff;
   color: var(--accent);
@@ -1050,6 +1089,77 @@ tbody tr:hover {
 .confirm-dialog .form-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+/* === ARTICLE PAGE === */
+
+.panel--article {
+  max-width: 980px;
+}
+
+.article-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.article-page__header {
+  border-bottom: 1px solid var(--line-light);
+  padding-bottom: 0.9rem;
+}
+
+.article-page__kicker {
+  margin: 0 0 0.2rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.article-page h1 {
+  margin: 0;
+  font-family: "Noto Serif", Georgia, serif;
+  font-size: clamp(1.4rem, 2.7vw, 1.95rem);
+}
+
+.article-page__meta {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.article-page__lead {
+  margin: 0.6rem 0 0;
+}
+
+.article-page__summary-row {
+  margin: 0.5rem 0 0;
+}
+
+.article-section {
+  border: 1px solid var(--line-light);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  background: #fff;
+}
+
+.article-section h2 {
+  margin: 0 0 0.6rem;
+  font-family: "Noto Serif", Georgia, serif;
+  font-size: 1.06rem;
+}
+
+.article-section ul {
+  margin: 0;
+  padding-left: 1.15rem;
+  line-height: 1.5;
+}
+
+.article-section li {
+  margin-bottom: 0.42rem;
 }
 
 /* === RESPONSIVE === */

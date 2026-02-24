@@ -29,6 +29,8 @@ def test_search_returns_items(client: TestClient) -> None:
     payload = response.json()
     assert payload["total"] >= 1
     assert len(payload["items"]) >= 1
+    assert isinstance(payload["items"][0]["canonical_topic_slug"], str)
+    assert payload["items"][0]["canonical_topic_slug"]
 
 
 def test_filter_by_topic(client: TestClient) -> None:
@@ -36,6 +38,19 @@ def test_filter_by_topic(client: TestClient) -> None:
     assert response.status_code == 200
     payload = response.json()
     assert all(item["topic"] == "Healthcare" for item in payload["items"])
+
+
+def test_topic_page_endpoint(client: TestClient) -> None:
+    response = client.get("/api/topics/healthcare")
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload["slug"] == "healthcare"
+    assert payload["total_claims"] >= 1
+    assert payload["verified_lie_count"] >= 0
+    assert len(payload["claims"]) >= 1
+    assert all(item["canonical_topic_slug"] == "healthcare" for item in payload["claims"])
+    assert isinstance(payload["sources"], list)
 
 
 def test_workflow_intake_factcheck_editorial_publish(client: TestClient) -> None:

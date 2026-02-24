@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trump Tracking Research Database</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20260224145933" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260224173000" />
   </head>
   <body>
     <header class="wiki-masthead hero">
@@ -29,6 +29,8 @@
         role="tab" aria-controls="tabHome" aria-selected="true">Home</button>
       <button class="tab-bar__item" id="tabBtnSearch" data-tab="search"
         role="tab" aria-controls="tabSearch" aria-selected="false">Search</button>
+      <button class="tab-bar__item" id="tabBtnArticle" data-tab="article"
+        role="tab" aria-controls="tabArticle" aria-selected="false">Article</button>
       <button class="tab-bar__item" id="tabBtnDashboard" data-tab="dashboard"
         role="tab" aria-controls="tabDashboard" aria-selected="false">Dashboard</button>
       <button class="tab-bar__item" id="tabBtnIntake" data-tab="intake"
@@ -234,7 +236,7 @@
                   <th>Topic</th>
                   <th>Verdict</th>
                   <th>Impact</th>
-                  <th>Quote</th>
+                  <th>Claim / Quote</th>
                 </tr>
               </thead>
               <tbody id="resultsBody"></tbody>
@@ -245,6 +247,19 @@
         <section class="panel panel--search-detail" id="detailPanel" tabindex="-1">
           <h2>Claim Detail</h2>
           <p class="muted">Select a result to inspect quote, rationale, and source links.</p>
+        </section>
+      </div>
+    </main>
+
+    <!-- TAB: ARTICLE -->
+    <main class="tab-content" id="tabArticle" role="tabpanel"
+      aria-labelledby="tabBtnArticle">
+      <div class="layout layout--single">
+        <section class="panel panel--article" id="articlePanel" tabindex="-1">
+          <h2>Article</h2>
+          <p class="muted">
+            Open a claim link or a topic dossier link to view the full article-style explainer.
+          </p>
         </section>
       </div>
     </main>
@@ -444,6 +459,6 @@
       </div>
     </main>
 
-    <script src="/static/app.js?v=20260224145933" type="module"></script>
+    <script src="/static/app.js?v=20260224173000" type="module"></script>
   </body>
 </html>
