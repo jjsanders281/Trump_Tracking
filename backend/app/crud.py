@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Optional
 
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, selectinload
 
 from . import models, schemas
+
+LIE_VERDICTS = ("false", "misleading", "contradicted")
+CURRENT_TERM_START_DATE = date(2025, 1, 20)
+CAMPAIGN_LAUNCH_DATE = date(2015, 6, 16)
 
 
 def _latest_assessment(assessments: list[models.Assessment]) -> Optional[models.Assessment]:
@@ -668,6 +672,20 @@ def workflow_queue_summary(db: Session) -> schemas.WorkflowQueueSummary:
     )
 
 
+def _count_lie_claims_since(db: Session, start_date: date) -> int:
+    start_dt = datetime.combine(start_date, time.min)
+    return (
+        db.query(func.count(func.distinct(models.Claim.id)))
+        .join(models.Statement, models.Statement.id == models.Claim.statement_id)
+        .join(models.Assessment, models.Assessment.claim_id == models.Claim.id)
+        .filter(models.Statement.occurred_at >= start_dt)
+        .filter(models.Assessment.publish_status == "verified")
+        .filter(models.Assessment.verdict.in_(LIE_VERDICTS))
+        .scalar()
+        or 0
+    )
+
+
 def dashboard_summary(db: Session) -> schemas.DashboardSummary:
     total_claims = db.query(models.Claim).count()
     verified_claims = (
@@ -693,10 +711,24 @@ def dashboard_summary(db: Session) -> schemas.DashboardSummary:
         .all()
     )
 
+    today = datetime.utcnow().date()
+    week_start = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+    year_start = date(today.year, 1, 1)
+
     return schemas.DashboardSummary(
         total_claims=total_claims,
         verified_claims=verified_claims,
         contradiction_links=contradiction_links,
+        lie_tracker=schemas.LieTrackerSummary(
+            this_week=_count_lie_claims_since(db, week_start),
+            this_month=_count_lie_claims_since(db, month_start),
+            this_year=_count_lie_claims_since(db, year_start),
+            this_term=_count_lie_claims_since(db, CURRENT_TERM_START_DATE),
+            since_campaign_launch=_count_lie_claims_since(db, CAMPAIGN_LAUNCH_DATE),
+            term_start_date=CURRENT_TERM_START_DATE,
+            campaign_launch_date=CAMPAIGN_LAUNCH_DATE,
+        ),
         verdict_breakdown={key: value for key, value in verdict_rows},
         topic_breakdown={key: value for key, value in topic_rows},
     )

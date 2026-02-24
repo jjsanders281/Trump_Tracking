@@ -183,10 +183,21 @@ class ClaimSearchResponse(BaseModel):
     items: list[ClaimRead]
 
 
+class LieTrackerSummary(BaseModel):
+    this_week: int
+    this_month: int
+    this_year: int
+    this_term: int
+    since_campaign_launch: int
+    term_start_date: date
+    campaign_launch_date: date
+
+
 class DashboardSummary(BaseModel):
     total_claims: int
     verified_claims: int
     contradiction_links: int
+    lie_tracker: LieTrackerSummary
     verdict_breakdown: dict[str, int]
     topic_breakdown: dict[str, int]
 

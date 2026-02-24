@@ -143,6 +143,32 @@ def test_workflow_intake_factcheck_editorial_publish(client: TestClient) -> None
     assert {"fact_check", "editorial", "verified", "rejected"} <= set(summary.keys())
 
 
+def test_dashboard_summary_includes_lie_tracker(client: TestClient) -> None:
+    response = client.get("/api/dashboard/summary")
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert "lie_tracker" in payload
+    lie_tracker = payload["lie_tracker"]
+    expected_keys = {
+        "this_week",
+        "this_month",
+        "this_year",
+        "this_term",
+        "since_campaign_launch",
+        "term_start_date",
+        "campaign_launch_date",
+    }
+    assert expected_keys <= set(lie_tracker.keys())
+
+    for key in ["this_week", "this_month", "this_year", "this_term", "since_campaign_launch"]:
+        assert isinstance(lie_tracker[key], int)
+        assert lie_tracker[key] >= 0
+
+    assert lie_tracker["term_start_date"] == "2025-01-20"
+    assert lie_tracker["campaign_launch_date"] == "2015-06-16"
+
+
 def teardown_module() -> None:
     db_file = Path("test_tracker.db")
     if db_file.exists():

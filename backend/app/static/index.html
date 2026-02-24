@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trump Tracking Research Database</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20260224f" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260224145933" />
   </head>
   <body>
     <header class="wiki-masthead hero">
@@ -104,7 +104,7 @@
 
           <section class="mp-box mp-box--stats">
             <h2 class="mp-box__title">Archive Snapshot</h2>
-            <div class="wiki-home__stats">
+            <div class="wiki-home__stats wiki-home__stats--3">
               <article>
                 <p class="label">Total Claims</p>
                 <p class="value" id="homeTotalClaims">-</p>
@@ -118,6 +118,36 @@
                 <p class="value" id="homeContradictionLinks">-</p>
               </article>
             </div>
+            <h3 class="mp-box__subhead">Lie Tracker</h3>
+            <p class="mp-box__note">
+              Verified claims with verdicts marked <strong>false</strong>, <strong>misleading</strong>,
+              or <strong>contradicted</strong>.
+            </p>
+            <div class="wiki-home__stats wiki-home__stats--5">
+              <article>
+                <p class="label">This Week</p>
+                <p class="value" id="homeLiesThisWeek">-</p>
+              </article>
+              <article>
+                <p class="label">This Month</p>
+                <p class="value" id="homeLiesThisMonth">-</p>
+              </article>
+              <article>
+                <p class="label">This Year</p>
+                <p class="value" id="homeLiesThisYear">-</p>
+              </article>
+              <article>
+                <p class="label">This Term</p>
+                <p class="value" id="homeLiesThisTerm">-</p>
+              </article>
+              <article>
+                <p class="label">Since Campaign Launch</p>
+                <p class="value" id="homeLiesSinceCampaignLaunch">-</p>
+              </article>
+            </div>
+            <p class="mp-box__note mp-box__note--dates" id="homeLieTrackerDates">
+              Term start and campaign launch windows are shown in UTC dates.
+            </p>
           </section>
         </div>
       </div>
@@ -414,6 +444,6 @@
       </div>
     </main>
 
-    <script src="/static/app.js?v=20260224f" type="module"></script>
+    <script src="/static/app.js?v=20260224145933" type="module"></script>
   </body>
 </html>

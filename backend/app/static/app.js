@@ -227,6 +227,7 @@ function clipText(value, max = 160) {
 async function loadSummary() {
   const res = await fetch("/api/dashboard/summary");
   const data = await res.json();
+  const lieTracker = data.lie_tracker || {};
 
   setTextIfPresent("totalClaims", data.total_claims);
   setTextIfPresent("verifiedClaims", data.verified_claims);
@@ -234,6 +235,18 @@ async function loadSummary() {
   setTextIfPresent("homeTotalClaims", data.total_claims);
   setTextIfPresent("homeVerifiedClaims", data.verified_claims);
   setTextIfPresent("homeContradictionLinks", data.contradiction_links);
+  setTextIfPresent("homeLiesThisWeek", lieTracker.this_week ?? "-");
+  setTextIfPresent("homeLiesThisMonth", lieTracker.this_month ?? "-");
+  setTextIfPresent("homeLiesThisYear", lieTracker.this_year ?? "-");
+  setTextIfPresent("homeLiesThisTerm", lieTracker.this_term ?? "-");
+  setTextIfPresent("homeLiesSinceCampaignLaunch", lieTracker.since_campaign_launch ?? "-");
+
+  const termStart = lieTracker.term_start_date ?? "2025-01-20";
+  const campaignLaunch = lieTracker.campaign_launch_date ?? "2015-06-16";
+  setTextIfPresent(
+    "homeLieTrackerDates",
+    `This term since ${termStart} · Campaign launch since ${campaignLaunch} (UTC dates).`,
+  );
 }
 
 async function loadHomeHighlights() {
