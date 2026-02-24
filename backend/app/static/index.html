@@ -128,20 +128,24 @@
       <div class="layout layout--dashboard">
         <section class="panel">
           <h2>Workflow Queues</h2>
-          <div class="metrics metrics--4col">
-            <article>
+          <div class="metrics metrics--4col" id="dashWorkflowMetrics">
+            <article class="metric-link" data-goto-queue="fact_check" tabindex="0" role="button"
+              aria-label="View fact-check queue">
               <p class="label">Needs Fact-Check</p>
               <p class="value" id="queueFactCheck">-</p>
             </article>
-            <article>
+            <article class="metric-link" data-goto-queue="editorial" tabindex="0" role="button"
+              aria-label="View editorial queue">
               <p class="label">Awaiting Editorial</p>
               <p class="value" id="queueEditorial">-</p>
             </article>
-            <article>
+            <article class="metric-link" data-goto-queue="verified" tabindex="0" role="button"
+              aria-label="View verified claims">
               <p class="label">Verified</p>
               <p class="value" id="queueVerified">-</p>
             </article>
-            <article>
+            <article class="metric-link" data-goto-queue="rejected" tabindex="0" role="button"
+              aria-label="View rejected claims">
               <p class="label">Rejected</p>
               <p class="value" id="queueRejected">-</p>
             </article>
@@ -302,6 +306,10 @@
               data-stage="fact_check">Fact-Check <span id="reviewBadgeFactCheck" class="badge">0</span></button>
             <button class="sub-tab-bar__item"
               data-stage="editorial">Editorial <span id="reviewBadgeEditorial" class="badge">0</span></button>
+            <button class="sub-tab-bar__item"
+              data-stage="verified">Verified <span id="reviewBadgeVerified" class="badge">0</span></button>
+            <button class="sub-tab-bar__item"
+              data-stage="rejected">Rejected <span id="reviewBadgeRejected" class="badge">0</span></button>
           </nav>
           <div id="reviewQueue"></div>
           <div class="pagination" id="reviewPagination"></div>

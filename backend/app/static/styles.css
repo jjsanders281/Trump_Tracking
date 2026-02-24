@@ -220,6 +220,35 @@ a:focus-visible {
   grid-template-columns: repeat(4, 1fr);
 }
 
+.metric-link {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.metric-link:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(94, 42, 31, 0.12);
+  background: var(--bg-elevated);
+}
+
+.metric-link:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.metric-link .value::after {
+  content: " \203A";
+  font-size: 0.8em;
+  color: var(--muted);
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+}
+
+.metric-link:hover .value::after {
+  opacity: 1;
+  color: var(--accent);
+}
+
 /* === TABLE === */
 
 .table-wrap {
@@ -403,6 +432,24 @@ tbody tr:hover {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.4rem;
+  border-radius: 6px;
+  padding: 0.2rem 0.35rem;
+  margin-left: -0.35rem;
+  margin-right: -0.35rem;
+}
+
+.bar-row--clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.bar-row--clickable:hover {
+  background: var(--bg-elevated);
+}
+
+.bar-row--clickable:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
 }
 
 .bar-row__label {

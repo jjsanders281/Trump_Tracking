@@ -613,11 +613,11 @@ async function loadDashboard() {
   byId("dashVerifiedClaims").textContent = dashboard.verified_claims;
   byId("dashContradictionLinks").textContent = dashboard.contradiction_links;
 
-  renderBarChart("verdictBars", dashboard.verdict_breakdown);
-  renderBarChart("topicBars", dashboard.topic_breakdown);
+  renderBarChart("verdictBars", dashboard.verdict_breakdown, "verdict");
+  renderBarChart("topicBars", dashboard.topic_breakdown, "topic");
 }
 
-function renderBarChart(containerId, dataObj) {
+function renderBarChart(containerId, dataObj, clickField) {
   const container = byId(containerId);
   const entries = Object.entries(dataObj);
   if (!entries.length) {
@@ -628,7 +628,8 @@ function renderBarChart(containerId, dataObj) {
   container.innerHTML = entries
     .map(([label, count]) => {
       const pct = Math.round((count / maxVal) * 100);
-      return `<div class="bar-row">
+      const dataAttr = clickField ? ` data-filter-field="${escapeHtml(clickField)}" data-filter-value="${escapeHtml(label)}"` : "";
+      return `<div class="bar-row bar-row--clickable" tabindex="0" role="button"${dataAttr}>
       <span class="bar-row__label">${escapeHtml(label)}</span>
       <div class="bar-row__track">
         <div class="bar-row__fill" style="width:${pct}%"></div>
@@ -637,6 +638,36 @@ function renderBarChart(containerId, dataObj) {
     </div>`;
     })
     .join("");
+}
+
+// Dashboard workflow queue clicks → navigate to Review tab
+byId("dashWorkflowMetrics").addEventListener("click", (e) => {
+  const card = e.target.closest("[data-goto-queue]");
+  if (!card) return;
+  navigateToQueue(card.dataset.gotoQueue);
+});
+byId("dashWorkflowMetrics").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const card = e.target.closest("[data-goto-queue]");
+  if (!card) return;
+  e.preventDefault();
+  navigateToQueue(card.dataset.gotoQueue);
+});
+
+// Dashboard bar chart clicks → navigate to Search tab with filter
+for (const containerId of ["verdictBars", "topicBars"]) {
+  byId(containerId).addEventListener("click", (e) => {
+    const row = e.target.closest("[data-filter-field]");
+    if (!row) return;
+    navigateToSearchWithFilter(row.dataset.filterField, row.dataset.filterValue);
+  });
+  byId(containerId).addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const row = e.target.closest("[data-filter-field]");
+    if (!row) return;
+    e.preventDefault();
+    navigateToSearchWithFilter(row.dataset.filterField, row.dataset.filterValue);
+  });
 }
 
 // === INTAKE ===
@@ -779,6 +810,8 @@ async function loadReviewQueue() {
   const wf = await wfRes.json();
   byId("reviewBadgeFactCheck").textContent = wf.fact_check;
   byId("reviewBadgeEditorial").textContent = wf.editorial;
+  byId("reviewBadgeVerified").textContent = wf.verified;
+  byId("reviewBadgeRejected").textContent = wf.rejected;
 
   const stage = state.reviewStage;
   const res = await fetch(
@@ -816,7 +849,7 @@ function renderReviewQueue() {
       </div>
       <div class="queue-card__body">
         ${renderQueueCardDetail(item)}
-        ${state.reviewStage === "fact_check" ? renderFactCheckForm(item.id) : renderEditorialForm(item.id, assessment)}
+        ${state.reviewStage === "fact_check" ? renderFactCheckForm(item.id) : state.reviewStage === "editorial" ? renderEditorialForm(item.id, assessment) : renderFinalizedDetail(item.id, assessment)}
       </div>
     </div>`;
     })
@@ -926,6 +959,55 @@ function renderEditorialForm(claimId, assessment) {
     </div>
     <div class="action-status form-status"></div>
   </form>`;
+}
+
+function renderFinalizedDetail(claimId, assessment) {
+  const verdict = assessment?.verdict ?? "n/a";
+  const rationale = assessment?.rationale ?? "No rationale available";
+  const reviewer = assessment?.reviewer_primary ?? "Unknown";
+  const publishStatus = assessment?.publish_status ?? "n/a";
+  const verdictClass = verdictBadgeClass(verdict);
+  const statusClass = verdictBadgeClass(publishStatus);
+  return `<div class="detail-block">
+    <p><strong>Verdict:</strong> <span class="badge ${verdictClass}">${escapeHtml(verdict)}</span></p>
+    <p><strong>Status:</strong> <span class="badge ${statusClass}">${escapeHtml(publishStatus)}</span></p>
+    <p><strong>Rationale:</strong> ${escapeHtml(rationale)}</p>
+    <p><strong>Reviewer:</strong> ${escapeHtml(reviewer)}</p>
+  </div>`;
+}
+
+// === CROSS-TAB NAVIGATION ===
+
+function navigateToQueue(stage) {
+  // Switch to the review tab and select the given sub-tab stage
+  state.reviewStage = stage;
+  state.reviewOffset = 0;
+  state.expandedCardId = null;
+
+  // Update sub-tab visual state
+  for (const b of document.querySelectorAll("#reviewSubTabs .sub-tab-bar__item")) {
+    b.classList.toggle("sub-tab-bar__item--active", b.dataset.stage === stage);
+  }
+
+  switchTab("review");
+}
+
+function navigateToSearchWithFilter(filterField, filterValue) {
+  // Reset all search filters first
+  byId("q").value = "";
+  byId("topic").value = "";
+  byId("verdict").value = "";
+  byId("start_date").value = "";
+  byId("end_date").value = "";
+  byId("min_impact").value = "";
+  byId("verified_only").checked = false;
+
+  // Set the requested filter
+  const el = byId(filterField);
+  if (el) el.value = filterValue;
+
+  switchTab("search");
+  runSearch();
 }
 
 // Card expand/collapse
