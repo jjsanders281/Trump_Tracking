@@ -129,6 +129,9 @@ function renderDetail(item) {
     ? item.tags.map((tag) => `<span class="badge">${escapeHtml(tag.name)}</span>`).join(" ")
     : '<span class="muted">None</span>';
 
+  const publishStatus = latest?.publish_status ?? "pending";
+  const isFinalized = publishStatus === "verified" || publishStatus === "rejected";
+
   panel.innerHTML = `
     <h2>Claim Detail</h2>
     <div class="detail-block">
@@ -139,7 +142,7 @@ function renderDetail(item) {
     </div>
     <div class="detail-block">
       <p><strong>Verdict:</strong> ${escapeHtml(latest?.verdict ?? "none")}</p>
-      <p><strong>Publish status:</strong> ${escapeHtml(latest?.publish_status ?? "pending")}</p>
+      <p><strong>Publish status:</strong> ${escapeHtml(publishStatus)}</p>
       <p><strong>Rationale:</strong> ${escapeHtml(latest?.rationale ?? "Not assessed yet")}</p>
     </div>
     <div class="detail-block">
@@ -148,7 +151,316 @@ function renderDetail(item) {
       <p><strong>Corroborating sources:</strong></p>
       <ul>${sources || '<li class="muted">No additional sources.</li>'}</ul>
     </div>
+    <div class="detail-actions">
+      <button class="btn-edit" data-action="edit" data-claim-id="${item.id}">Edit</button>
+      ${isFinalized ? `<button class="btn-reopen" data-action="reopen" data-claim-id="${item.id}">Reopen</button>` : ""}
+      <button class="btn-danger" data-action="delete" data-claim-id="${item.id}">Delete</button>
+    </div>
+    <div id="detailFormArea"></div>
   `;
+}
+
+function renderEditForm(item) {
+  const s = item.statement;
+  const tagsStr = item.tags.map((t) => t.name).join(", ");
+  const occurredLocal = s.occurred_at ? new Date(s.occurred_at).toISOString().slice(0, 16) : "";
+
+  const sourcesHtml = item.sources
+    .map(
+      (src, i) => `<div class="source-row" data-source-idx="${i}">
+      <div class="controls">
+        <label>Publisher * <input class="editSrcPublisher" type="text" value="${escapeHtml(src.publisher)}" /></label>
+        <label>URL * <input class="editSrcUrl" type="url" value="${escapeHtml(src.url)}" /></label>
+        <label>Tier
+          <select class="editSrcTier">
+            <option value="1" ${src.source_tier === 1 ? "selected" : ""}>1 (Primary/Wire)</option>
+            <option value="2" ${src.source_tier === 2 ? "selected" : ""}>2 (Major Outlet)</option>
+            <option value="3" ${src.source_tier === 3 ? "selected" : ""}>3 (Partisan/Context)</option>
+          </select>
+        </label>
+        <label class="checkbox"><input class="editSrcIsPrimary" type="checkbox" ${src.is_primary ? "checked" : ""} /> Primary</label>
+        <button type="button" class="btn-remove-source">Remove</button>
+      </div>
+    </div>`,
+    )
+    .join("");
+
+  return `<div class="edit-form">
+    <form id="editClaimForm" data-claim-id="${item.id}">
+      <fieldset>
+        <legend>Statement</legend>
+        <div class="controls">
+          <label>Date/Time <input id="editOccurredAt" type="datetime-local" value="${occurredLocal}" /></label>
+          <label>Speaker <input id="editSpeaker" type="text" value="${escapeHtml(s.speaker)}" /></label>
+          <label>Venue <input id="editVenue" type="text" value="${escapeHtml(s.venue ?? "")}" /></label>
+          <label>Impact
+            <select id="editImpactScore">
+              ${[1, 2, 3, 4, 5].map((n) => `<option value="${n}" ${s.impact_score === n ? "selected" : ""}>${n}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+        <label>Quote <textarea id="editQuote" rows="3">${escapeHtml(s.quote)}</textarea></label>
+        <label>Context <textarea id="editContext" rows="2">${escapeHtml(s.context ?? "")}</textarea></label>
+        <label>Primary Source URL <input id="editPrimarySourceUrl" type="url" value="${escapeHtml(s.primary_source_url)}" /></label>
+        <label>Media URL <input id="editMediaUrl" type="url" value="${escapeHtml(s.media_url ?? "")}" /></label>
+        <label>Region <input id="editRegion" type="text" value="${escapeHtml(s.region)}" /></label>
+      </fieldset>
+      <fieldset>
+        <legend>Claim</legend>
+        <label>Claim Text <textarea id="editClaimText" rows="2">${escapeHtml(item.claim_text)}</textarea></label>
+        <div class="controls">
+          <label>Topic <input id="editTopic" type="text" value="${escapeHtml(item.topic)}" /></label>
+          <label>Kind
+            <select id="editClaimKind">
+              ${["statement", "promise", "denial", "attack", "policy"].map((k) => `<option value="${k}" ${item.claim_kind === k ? "selected" : ""}>${k}</option>`).join("")}
+            </select>
+          </label>
+          <label>Tags (comma-separated) <input id="editTags" type="text" value="${escapeHtml(tagsStr)}" /></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Sources</legend>
+        <div id="editSources">${sourcesHtml}</div>
+        <button type="button" id="editAddSourceBtn" class="btn-secondary">+ Add Source</button>
+      </fieldset>
+      <fieldset>
+        <legend>Change Tracking</legend>
+        <div class="controls">
+          <label>Changed By * <input id="editChangedBy" type="text" required minlength="2" placeholder="Your name or agent ID" /></label>
+          <label>Note <input id="editNote" type="text" placeholder="What changed and why..." /></label>
+        </div>
+      </fieldset>
+      <div class="form-actions">
+        <button type="submit">Save Changes</button>
+        <button type="button" class="btn-cancel" id="editCancelBtn">Cancel</button>
+      </div>
+      <div id="editStatus" class="form-status"></div>
+    </form>
+  </div>`;
+}
+
+function collectEditSources() {
+  const rows = document.querySelectorAll("#editSources .source-row");
+  const sources = [];
+  for (const row of rows) {
+    const publisher = row.querySelector(".editSrcPublisher").value.trim();
+    const url = row.querySelector(".editSrcUrl").value.trim();
+    if (!publisher || !url) continue;
+    sources.push({
+      publisher,
+      url,
+      source_tier: parseInt(row.querySelector(".editSrcTier").value, 10),
+      is_primary: row.querySelector(".editSrcIsPrimary").checked,
+    });
+  }
+  return sources;
+}
+
+function addEditSourceRow() {
+  const container = byId("editSources");
+  const row = document.createElement("div");
+  row.className = "source-row";
+  row.innerHTML = `<div class="controls">
+    <label>Publisher * <input class="editSrcPublisher" type="text" /></label>
+    <label>URL * <input class="editSrcUrl" type="url" /></label>
+    <label>Tier
+      <select class="editSrcTier">
+        <option value="1">1 (Primary/Wire)</option>
+        <option value="2" selected>2 (Major Outlet)</option>
+        <option value="3">3 (Partisan/Context)</option>
+      </select>
+    </label>
+    <label class="checkbox"><input class="editSrcIsPrimary" type="checkbox" /> Primary</label>
+    <button type="button" class="btn-remove-source">Remove</button>
+  </div>`;
+  container.appendChild(row);
+}
+
+async function saveClaimEdits(event) {
+  event.preventDefault();
+  const form = event.target;
+  const claimId = form.dataset.claimId;
+  const statusEl = byId("editStatus");
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  const changedBy = byId("editChangedBy").value.trim();
+  const note = byId("editNote").value.trim() || null;
+
+  if (changedBy.length < 2) {
+    statusEl.textContent = "Error: Changed By is required (min 2 chars)";
+    statusEl.className = "form-status form-status--error";
+    return;
+  }
+
+  const tags = byId("editTags")
+    .value.split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  const patchBody = {
+    claim: {
+      claim_text: byId("editClaimText").value.trim() || null,
+      topic: byId("editTopic").value.trim() || null,
+      claim_kind: byId("editClaimKind").value || null,
+      tags: tags.length ? tags : null,
+    },
+    statement: {
+      occurred_at: byId("editOccurredAt").value
+        ? new Date(byId("editOccurredAt").value).toISOString()
+        : null,
+      speaker: byId("editSpeaker").value.trim() || null,
+      venue: byId("editVenue").value.trim() || null,
+      quote: byId("editQuote").value.trim() || null,
+      context: byId("editContext").value.trim() || null,
+      primary_source_url: byId("editPrimarySourceUrl").value.trim() || null,
+      media_url: byId("editMediaUrl").value.trim() || null,
+      region: byId("editRegion").value.trim() || null,
+      impact_score: parseInt(byId("editImpactScore").value, 10),
+    },
+    changed_by: changedBy,
+    note,
+  };
+
+  try {
+    // Save claim+statement fields
+    const patchRes = await fetch(`/api/claims/${claimId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patchBody),
+    });
+    if (!patchRes.ok) {
+      const err = await patchRes.json();
+      throw new Error(err.detail || `PATCH failed: ${patchRes.status}`);
+    }
+
+    // Save sources
+    const sourcesBody = {
+      sources: collectEditSources(),
+      changed_by: changedBy,
+      note: note ? `Sources: ${note}` : "Sources updated",
+    };
+    const srcRes = await fetch(`/api/claims/${claimId}/sources`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(sourcesBody),
+    });
+    if (!srcRes.ok) {
+      const err = await srcRes.json();
+      throw new Error(err.detail || `PUT sources failed: ${srcRes.status}`);
+    }
+
+    const updatedClaim = await srcRes.json();
+
+    statusEl.textContent = "Saved successfully!";
+    statusEl.className = "form-status form-status--success";
+
+    // Refresh detail view and search results
+    setTimeout(() => {
+      renderDetail(updatedClaim);
+      // Also update the item in state.items so the table row stays consistent
+      const idx = state.items.findIndex((it) => it.id === updatedClaim.id);
+      if (idx !== -1) state.items[idx] = updatedClaim;
+    }, 600);
+  } catch (err) {
+    statusEl.textContent = `Error: ${escapeHtml(err.message)}`;
+    statusEl.className = "form-status form-status--error";
+  }
+}
+
+async function reopenClaim(claimId) {
+  const area = byId("detailFormArea");
+  area.innerHTML = `<div class="edit-form">
+    <form id="reopenForm" data-claim-id="${claimId}">
+      <fieldset>
+        <legend>Reopen Claim</legend>
+        <div class="controls">
+          <label>Changed By * <input id="reopenChangedBy" type="text" required minlength="2" placeholder="Your name or agent ID" /></label>
+          <label>Reason * <input id="reopenReason" type="text" required minlength="5" placeholder="Why is this being reopened?" /></label>
+        </div>
+      </fieldset>
+      <div class="form-actions">
+        <button type="submit" class="btn-reopen" style="background:#2a7d3f;color:white;">Reopen</button>
+        <button type="button" class="btn-cancel" onclick="byId('detailFormArea').innerHTML=''">Cancel</button>
+      </div>
+      <div id="reopenStatus" class="form-status"></div>
+    </form>
+  </div>`;
+}
+
+async function submitReopen(event) {
+  event.preventDefault();
+  const form = event.target;
+  const claimId = form.dataset.claimId;
+  const statusEl = byId("reopenStatus");
+  statusEl.textContent = "Reopening...";
+  statusEl.className = "form-status";
+
+  try {
+    const res = await fetch(`/api/workflow/reopen/${claimId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        changed_by: byId("reopenChangedBy").value.trim(),
+        reason: byId("reopenReason").value.trim(),
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || `Reopen failed: ${res.status}`);
+    }
+    const updatedClaim = await res.json();
+    statusEl.textContent = "Claim reopened for re-review.";
+    statusEl.className = "form-status form-status--success";
+    setTimeout(() => {
+      renderDetail(updatedClaim);
+      const idx = state.items.findIndex((it) => it.id === updatedClaim.id);
+      if (idx !== -1) state.items[idx] = updatedClaim;
+    }, 600);
+  } catch (err) {
+    statusEl.textContent = `Error: ${escapeHtml(err.message)}`;
+    statusEl.className = "form-status form-status--error";
+  }
+}
+
+async function deleteClaim(claimId) {
+  const area = byId("detailFormArea");
+  area.innerHTML = `<div class="confirm-dialog">
+    <p>Are you sure you want to permanently delete this claim?</p>
+    <p style="font-weight:normal;font-size:0.84rem;color:var(--muted);">This will remove the claim, its statement, all sources, assessments, and revision history. This cannot be undone.</p>
+    <div class="form-actions">
+      <button class="btn-danger" id="confirmDeleteBtn" data-claim-id="${claimId}" style="background:#b33;color:white;">Yes, Delete</button>
+      <button class="btn-cancel" onclick="byId('detailFormArea').innerHTML=''">Cancel</button>
+    </div>
+    <div id="deleteStatus" class="form-status"></div>
+  </div>`;
+}
+
+async function confirmDelete(claimId) {
+  const statusEl = byId("deleteStatus");
+  statusEl.textContent = "Deleting...";
+  statusEl.className = "form-status";
+
+  try {
+    const res = await fetch(`/api/claims/${claimId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || `Delete failed: ${res.status}`);
+    }
+    statusEl.textContent = "Claim deleted.";
+    statusEl.className = "form-status form-status--success";
+
+    // Remove from local state and refresh
+    state.items = state.items.filter((it) => it.id !== claimId);
+    setTimeout(() => {
+      byId("detailPanel").innerHTML =
+        '<h2>Claim Detail</h2><p class="muted">Claim deleted. Run a new search to refresh.</p>';
+      runSearch();
+    }, 600);
+  } catch (err) {
+    statusEl.textContent = `Error: ${escapeHtml(err.message)}`;
+    statusEl.className = "form-status form-status--error";
+  }
 }
 
 async function runSearch() {
@@ -161,6 +473,46 @@ async function runSearch() {
 byId("searchBtn").addEventListener("click", runSearch);
 byId("q").addEventListener("keydown", (event) => {
   if (event.key === "Enter") runSearch();
+});
+
+// Detail panel action buttons (edit, reopen, delete)
+byId("detailPanel").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const claimId = parseInt(btn.dataset.claimId, 10);
+  const item = state.items.find((it) => it.id === claimId);
+
+  if (action === "edit" && item) {
+    const area = byId("detailFormArea");
+    area.innerHTML = renderEditForm(item);
+
+    // Wire up edit form events
+    byId("editClaimForm").addEventListener("submit", saveClaimEdits);
+    byId("editCancelBtn").addEventListener("click", () => {
+      area.innerHTML = "";
+    });
+    byId("editAddSourceBtn").addEventListener("click", addEditSourceRow);
+    byId("editSources").addEventListener("click", (ev) => {
+      if (ev.target.closest(".btn-remove-source")) {
+        ev.target.closest(".source-row").remove();
+      }
+    });
+  } else if (action === "reopen") {
+    reopenClaim(claimId);
+  } else if (action === "delete") {
+    deleteClaim(claimId);
+  }
+});
+
+// Delegated listeners for reopen form submit and delete confirm
+byId("detailPanel").addEventListener("submit", (e) => {
+  const form = e.target.closest("#reopenForm");
+  if (form) submitReopen(e);
+});
+byId("detailPanel").addEventListener("click", (e) => {
+  const btn = e.target.closest("#confirmDeleteBtn");
+  if (btn) confirmDelete(parseInt(btn.dataset.claimId, 10));
 });
 
 // === DASHBOARD ===
@@ -400,12 +752,23 @@ function renderQueueCardDetail(item) {
         `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.publisher)}</a> (Tier ${escapeHtml(s.source_tier)})${s.is_primary ? " - primary" : ""}</li>`,
     )
     .join("");
+
+  const publishStatus = item.latest_assessment?.publish_status ?? "pending";
+  const isFinalized = publishStatus === "verified" || publishStatus === "rejected";
+
   return `<div class="detail-block">
     <p><strong>Quote:</strong> ${escapeHtml(item.statement.quote)}</p>
     <p><strong>Venue:</strong> ${escapeHtml(item.statement.venue ?? "Unknown")}</p>
+    <p><strong>Claim Text:</strong> ${escapeHtml(item.claim_text)}</p>
+    <p><strong>Kind:</strong> ${escapeHtml(item.claim_kind)}</p>
     <p><strong>Primary Source:</strong> <a href="${escapeHtml(item.statement.primary_source_url)}" target="_blank" rel="noopener noreferrer">link</a></p>
     ${sources ? `<p><strong>Sources:</strong></p><ul>${sources}</ul>` : ""}
     ${item.tags.length ? `<p><strong>Tags:</strong> ${item.tags.map((t) => `<span class="badge">${escapeHtml(t.name)}</span>`).join(" ")}</p>` : ""}
+    <div class="detail-actions">
+      ${isFinalized ? `<button class="btn-reopen" data-review-action="reopen" data-claim-id="${item.id}">Reopen</button>` : ""}
+      <button class="btn-danger" data-review-action="delete" data-claim-id="${item.id}">Delete</button>
+    </div>
+    <div class="review-action-area" data-claim-id="${item.id}"></div>
   </div>`;
 }
 
@@ -494,6 +857,105 @@ byId("reviewQueue").addEventListener("click", (e) => {
   const claimId = parseInt(card.dataset.claimId, 10);
   state.expandedCardId = state.expandedCardId === claimId ? null : claimId;
   renderReviewQueue();
+});
+
+// Review queue reopen/delete actions
+byId("reviewQueue").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-review-action]");
+  if (!btn) return;
+  const action = btn.dataset.reviewAction;
+  const claimId = parseInt(btn.dataset.claimId, 10);
+  const area = btn.closest(".detail-block").querySelector(`.review-action-area[data-claim-id="${claimId}"]`);
+  if (!area) return;
+
+  if (action === "reopen") {
+    area.innerHTML = `<div class="edit-form" style="margin-top:0.6rem;">
+      <form class="review-reopen-form" data-claim-id="${claimId}">
+        <div class="controls">
+          <label>Changed By * <input class="rrChangedBy" type="text" required minlength="2" placeholder="Your name or agent ID" /></label>
+          <label>Reason * <input class="rrReason" type="text" required minlength="5" placeholder="Why reopen?" /></label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-reopen" style="background:#2a7d3f;color:white;">Reopen</button>
+          <button type="button" class="btn-cancel" onclick="this.closest('.review-action-area').innerHTML=''">Cancel</button>
+        </div>
+        <div class="action-status form-status"></div>
+      </form>
+    </div>`;
+  } else if (action === "delete") {
+    area.innerHTML = `<div class="confirm-dialog">
+      <p>Permanently delete this claim?</p>
+      <div class="form-actions">
+        <button class="btn-danger review-confirm-delete" data-claim-id="${claimId}" style="background:#b33;color:white;">Yes, Delete</button>
+        <button class="btn-cancel" onclick="this.closest('.review-action-area').innerHTML=''">Cancel</button>
+      </div>
+      <div class="action-status form-status"></div>
+    </div>`;
+  }
+});
+
+// Review queue reopen form submit
+byId("reviewQueue").addEventListener("submit", async (e) => {
+  const form = e.target.closest(".review-reopen-form");
+  if (form) {
+    e.preventDefault();
+    const claimId = form.dataset.claimId;
+    const statusEl = form.querySelector(".action-status");
+    statusEl.textContent = "Reopening...";
+    statusEl.className = "action-status form-status";
+
+    try {
+      const res = await fetch(`/api/workflow/reopen/${claimId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          changed_by: form.querySelector(".rrChangedBy").value.trim(),
+          reason: form.querySelector(".rrReason").value.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || `Reopen failed: ${res.status}`);
+      }
+      statusEl.textContent = "Reopened. Reloading queue...";
+      statusEl.className = "action-status form-status form-status--success";
+      setTimeout(() => {
+        state.expandedCardId = null;
+        loadReviewQueue();
+      }, 600);
+    } catch (err) {
+      statusEl.textContent = `Error: ${escapeHtml(err.message)}`;
+      statusEl.className = "action-status form-status form-status--error";
+    }
+    return;
+  }
+});
+
+// Review queue delete confirm
+byId("reviewQueue").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".review-confirm-delete");
+  if (!btn) return;
+  const claimId = btn.dataset.claimId;
+  const statusEl = btn.closest(".confirm-dialog").querySelector(".action-status");
+  statusEl.textContent = "Deleting...";
+  statusEl.className = "action-status form-status";
+
+  try {
+    const res = await fetch(`/api/claims/${claimId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || `Delete failed: ${res.status}`);
+    }
+    statusEl.textContent = "Deleted. Reloading queue...";
+    statusEl.className = "action-status form-status form-status--success";
+    setTimeout(() => {
+      state.expandedCardId = null;
+      loadReviewQueue();
+    }, 600);
+  } catch (err) {
+    statusEl.textContent = `Error: ${escapeHtml(err.message)}`;
+    statusEl.className = "action-status form-status form-status--error";
+  }
 });
 
 // Action form submissions (fact-check and editorial)

@@ -97,6 +97,10 @@ Expert-calibration assets:
 | POST | `/api/workflow/intake` | Research intake creation (no assessment required) |
 | POST | `/api/workflow/fact-check/{id}` | Submit/update pending fact-check assessment |
 | POST | `/api/workflow/editorial/{id}` | Apply editorial verification/rejection decision |
+| PATCH | `/api/claims/{id}` | Partial update claim/statement fields (body: `ClaimPatchPayload`) |
+| PUT | `/api/claims/{id}/sources` | Replace all sources on a claim (body: `SourcesReplacePayload`) |
+| POST | `/api/workflow/reopen/{id}` | Reopen a verified/rejected claim for re-review |
+| DELETE | `/api/claims/{id}` | Delete claim and all related records |
 
 ## Code Style
 

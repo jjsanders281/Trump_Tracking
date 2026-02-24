@@ -507,6 +507,127 @@ tbody tr:hover {
   color: var(--muted);
 }
 
+/* === EDIT FORM === */
+
+.detail-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.btn-edit {
+  background: var(--panel);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+}
+
+.btn-edit:hover {
+  background: #f5efe0;
+}
+
+.btn-danger {
+  background: none;
+  color: #b33;
+  border: 1px solid #b33;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+}
+
+.btn-danger:hover {
+  background: #fde8e8;
+}
+
+.btn-reopen {
+  background: none;
+  color: #2a7d3f;
+  border: 1px solid #2a7d3f;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+}
+
+.btn-reopen:hover {
+  background: #e8f5ec;
+}
+
+.edit-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.edit-form fieldset {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 0 0 1rem 0;
+}
+
+.edit-form legend {
+  font-weight: 700;
+  padding: 0 0.4rem;
+}
+
+.edit-form label {
+  margin-bottom: 0.4rem;
+}
+
+.edit-form .controls {
+  margin-bottom: 0.6rem;
+}
+
+.edit-form .form-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-cancel {
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+}
+
+.btn-cancel:hover {
+  background: #efe8d7;
+}
+
+.confirm-dialog {
+  margin-top: 0.8rem;
+  padding: 0.8rem;
+  background: #fef3f3;
+  border: 1px solid #e8b4b4;
+  border-radius: 8px;
+}
+
+.confirm-dialog p {
+  margin: 0 0 0.6rem 0;
+  font-size: 0.9rem;
+  color: #b33;
+  font-weight: 600;
+}
+
+.confirm-dialog .form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 /* === RESPONSIVE === */
 
 @media (max-width: 900px) {

@@ -168,6 +168,59 @@ class WorkflowQueueSummary(BaseModel):
     rejected: int
 
 
+class ClaimUpdate(BaseModel):
+    """Partial update for claim fields. All fields optional — only send what changed."""
+
+    claim_text: Optional[str] = Field(default=None, min_length=5)
+    topic: Optional[str] = None
+    claim_kind: Optional[str] = None
+    tags: Optional[list[str]] = None
+
+
+class StatementUpdate(BaseModel):
+    """Partial update for statement fields. All fields optional — only send what changed."""
+
+    occurred_at: Optional[datetime] = None
+    speaker: Optional[str] = None
+    venue: Optional[str] = None
+    quote: Optional[str] = Field(default=None, min_length=5)
+    context: Optional[str] = None
+    primary_source_url: Optional[str] = None
+    media_url: Optional[str] = None
+    region: Optional[str] = None
+    impact_score: Optional[int] = Field(default=None, ge=1, le=5)
+
+
+class ClaimPatchPayload(BaseModel):
+    """Combined PATCH payload. Send claim fields, statement fields, or both."""
+
+    claim: Optional[ClaimUpdate] = None
+    statement: Optional[StatementUpdate] = None
+    changed_by: str = Field(min_length=2)
+    note: Optional[str] = None
+
+
+class SourcesReplacePayload(BaseModel):
+    """Replace all sources for a claim. Sends the full desired source list."""
+
+    sources: list[SourceCreate]
+    changed_by: str = Field(min_length=2)
+    note: Optional[str] = None
+
+
+class ReopenPayload(BaseModel):
+    """Reopen a finalized (verified/rejected) claim for re-review."""
+
+    changed_by: str = Field(min_length=2)
+    reason: str = Field(min_length=5)
+
+
+class DeleteResponse(BaseModel):
+    id: int
+    deleted: bool
+    message: str
+
+
 class SearchFilters(BaseModel):
     q: Optional[str] = None
     topic: Optional[str] = None

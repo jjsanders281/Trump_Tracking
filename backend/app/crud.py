@@ -319,6 +319,184 @@ def submit_editorial_decision(
     return result  # type: ignore[return-value]
 
 
+def update_claim(
+    db: Session,
+    claim_id: int,
+    payload: schemas.ClaimPatchPayload,
+) -> schemas.ClaimRead:
+    claim = _get_claim_model(db, claim_id)
+    if claim is None:
+        raise ValueError("Claim not found")
+
+    changes: list[str] = []
+
+    if payload.claim:
+        for field in ("claim_text", "topic", "claim_kind"):
+            new_val = getattr(payload.claim, field)
+            if new_val is not None:
+                old_val = getattr(claim, field)
+                if new_val != old_val:
+                    setattr(claim, field, new_val)
+                    changes.append(f"{field}: {old_val!r} -> {new_val!r}")
+        if payload.claim.tags is not None:
+            old_tags = sorted(t.name for t in claim.tags)
+            claim.tags = _get_or_create_tags(db, payload.claim.tags)
+            new_tags = sorted(t.name for t in claim.tags)
+            if old_tags != new_tags:
+                changes.append(f"tags: {old_tags} -> {new_tags}")
+
+    if payload.statement:
+        stmt = claim.statement
+        for field in (
+            "occurred_at", "speaker", "venue", "quote", "context",
+            "primary_source_url", "media_url", "region", "impact_score",
+        ):
+            new_val = getattr(payload.statement, field)
+            if new_val is not None:
+                old_val = getattr(stmt, field)
+                if new_val != old_val:
+                    setattr(stmt, field, new_val)
+                    changes.append(f"statement.{field} updated")
+
+    if not changes:
+        raise ValueError("No changes detected in payload")
+
+    summary = f"Claim updated: {'; '.join(changes)}"
+    if payload.note:
+        summary = f"{summary}. Note: {payload.note[:500]}"
+
+    _record_revision(
+        db,
+        entity_type="claim",
+        entity_id=claim.id,
+        changed_by=payload.changed_by,
+        change_summary=summary,
+    )
+
+    db.commit()
+
+    result = get_claim(db, claim.id)
+    return result  # type: ignore[return-value]
+
+
+def replace_sources(
+    db: Session,
+    claim_id: int,
+    payload: schemas.SourcesReplacePayload,
+) -> schemas.ClaimRead:
+    claim = _get_claim_model(db, claim_id)
+    if claim is None:
+        raise ValueError("Claim not found")
+
+    old_count = len(claim.sources)
+    for source in claim.sources:
+        db.delete(source)
+    db.flush()
+
+    for source in payload.sources:
+        db.add(
+            models.Source(
+                claim_id=claim.id,
+                publisher=source.publisher,
+                url=source.url,
+                source_tier=source.source_tier,
+                is_primary=source.is_primary,
+                archived_url=source.archived_url,
+                notes=source.notes,
+            )
+        )
+
+    summary = f"Sources replaced: {old_count} removed, {len(payload.sources)} added"
+    if payload.note:
+        summary = f"{summary}. Note: {payload.note[:500]}"
+
+    _record_revision(
+        db,
+        entity_type="claim",
+        entity_id=claim.id,
+        changed_by=payload.changed_by,
+        change_summary=summary,
+    )
+
+    db.commit()
+
+    result = get_claim(db, claim.id)
+    return result  # type: ignore[return-value]
+
+
+def reopen_claim(
+    db: Session,
+    claim_id: int,
+    payload: schemas.ReopenPayload,
+) -> schemas.ClaimRead:
+    claim = _get_claim_model(db, claim_id)
+    if claim is None:
+        raise ValueError("Claim not found")
+
+    latest = _latest_assessment(claim.assessments)
+    if latest is None:
+        raise ValueError("Claim has no assessment to reopen")
+    if latest.publish_status == "pending":
+        raise ValueError("Claim is already pending; nothing to reopen")
+
+    old_status = latest.publish_status
+    latest.publish_status = "pending"
+    latest.verified_at = None
+    latest.reviewer_secondary = None
+
+    _record_revision(
+        db,
+        entity_type="claim",
+        entity_id=claim.id,
+        changed_by=payload.changed_by,
+        change_summary=f"Claim reopened from {old_status}. Reason: {payload.reason[:500]}",
+    )
+
+    db.commit()
+
+    result = get_claim(db, claim.id)
+    return result  # type: ignore[return-value]
+
+
+def delete_claim(db: Session, claim_id: int) -> bool:
+    claim = _get_claim_model(db, claim_id)
+    if claim is None:
+        raise ValueError("Claim not found")
+
+    # Delete in dependency order
+    db.query(models.Contradiction).filter(
+        (models.Contradiction.claim_id == claim_id)
+        | (models.Contradiction.contradicts_claim_id == claim_id)
+    ).delete(synchronize_session=False)
+    db.query(models.Revision).filter(
+        models.Revision.entity_type == "claim",
+        models.Revision.entity_id == claim_id,
+    ).delete(synchronize_session=False)
+    db.query(models.Assessment).filter(models.Assessment.claim_id == claim_id).delete(
+        synchronize_session=False
+    )
+    db.query(models.Source).filter(models.Source.claim_id == claim_id).delete(
+        synchronize_session=False
+    )
+    # Clear tag associations (many-to-many junction)
+    claim.tags = []
+    db.flush()
+
+    statement_id = claim.statement_id
+    db.delete(claim)
+    db.flush()
+
+    # Delete the statement if no other claims reference it
+    other_claims = db.query(models.Claim).filter(models.Claim.statement_id == statement_id).count()
+    if other_claims == 0:
+        stmt = db.query(models.Statement).filter(models.Statement.id == statement_id).first()
+        if stmt:
+            db.delete(stmt)
+
+    db.commit()
+    return True
+
+
 def get_claim(db: Session, claim_id: int) -> Optional[schemas.ClaimRead]:
     claim = _get_claim_model(db, claim_id)
     if not claim:

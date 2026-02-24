@@ -98,6 +98,62 @@ def submit_editorial_decision(
         raise HTTPException(status_code=status_code, detail=detail) from exc
 
 
+@app.patch("/api/claims/{claim_id}", response_model=schemas.ClaimRead)
+def update_claim(
+    claim_id: int,
+    payload: schemas.ClaimPatchPayload,
+    db: Session = Depends(get_db),
+) -> schemas.ClaimRead:
+    try:
+        return crud.update_claim(db, claim_id, payload)
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 404 if "not found" in detail.lower() else 400
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+
+@app.put("/api/claims/{claim_id}/sources", response_model=schemas.ClaimRead)
+def replace_sources(
+    claim_id: int,
+    payload: schemas.SourcesReplacePayload,
+    db: Session = Depends(get_db),
+) -> schemas.ClaimRead:
+    try:
+        return crud.replace_sources(db, claim_id, payload)
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 404 if "not found" in detail.lower() else 400
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+
+@app.post("/api/workflow/reopen/{claim_id}", response_model=schemas.ClaimRead)
+def reopen_claim(
+    claim_id: int,
+    payload: schemas.ReopenPayload,
+    db: Session = Depends(get_db),
+) -> schemas.ClaimRead:
+    try:
+        return crud.reopen_claim(db, claim_id, payload)
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 404 if "not found" in detail.lower() else 400
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+
+@app.delete("/api/claims/{claim_id}", response_model=schemas.DeleteResponse)
+def delete_claim(
+    claim_id: int,
+    db: Session = Depends(get_db),
+) -> schemas.DeleteResponse:
+    try:
+        crud.delete_claim(db, claim_id)
+        return schemas.DeleteResponse(id=claim_id, deleted=True, message="Claim deleted")
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 404 if "not found" in detail.lower() else 400
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+
 @app.get("/api/claims/search", response_model=schemas.ClaimSearchResponse)
 def search_claims(
     q: Optional[str] = Query(default=None),
