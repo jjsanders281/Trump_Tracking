@@ -120,6 +120,20 @@ Retractions
 
 Updated methodology
 
+I. Public Rebuttal Block (required for `false`, `misleading`, `contradicted`)
+
+Write the rationale in three labeled sections:
+
+Evidence:
+- Specific source + what it shows (with concrete fact/date/number when available).
+
+Why This Is False:
+- Point-by-point mismatch between the claim and verified record.
+
+Shut Down False Argument:
+- Address common counterarguments directly using cited evidence.
+- Keep this evidence-based, direct, and readable to non-experts.
+
 Government data (.gov, national statistics agencies)
 
 Court documents
@@ -197,7 +211,7 @@ Issue verdict.
 ## Core Duties
 - Verify each claim against primary and corroborating sources.
 - Apply source-tier rules before verdict assignment.
-- Write rationale concise enough for public scrutiny.
+- Write rationale detailed enough for public scrutiny and rebuttal use.
 - Mark unsupported claims as `pending` rather than forcing verdicts.
 - Flag contradictions across historical claims.
 
@@ -217,7 +231,7 @@ Issue verdict.
 
 ## Quality Gates
 - No `verified` status without required source support.
-- For high-risk verdicts (`false`, `misleading`, `contradicted`), include explicit evidence chain.
+- For high-risk verdicts (`false`, `misleading`, `contradicted`), include explicit evidence chain and all three rationale sections: `Evidence`, `Why This Is False`, `Shut Down False Argument`.
 - Distinguish `unverified` vs `unfulfilled` clearly.
 
 ## Daily Checklist

@@ -50,6 +50,92 @@ const verdictBadgeClass = (value) => {
   return normalized === "n/a" ? "badge--na" : `badge--${normalized}`;
 };
 
+const HIGH_RISK_VERDICTS = new Set(["false", "misleading", "contradicted"]);
+const REQUIRED_RATIONALE_SECTIONS = [
+  "Evidence:",
+  "Why This Is False:",
+  "Shut Down False Argument:",
+];
+
+function validateHighRiskRationale(verdict, rationale) {
+  const normalizedVerdict = String(verdict ?? "").toLowerCase();
+  const text = String(rationale ?? "").trim();
+
+  if (!HIGH_RISK_VERDICTS.has(normalizedVerdict)) return null;
+  if (text.length < 240) {
+    return "For false/misleading/contradicted verdicts, rationale must be detailed (minimum 240 characters).";
+  }
+
+  const lower = text.toLowerCase();
+  const missing = REQUIRED_RATIONALE_SECTIONS.filter(
+    (section) => !lower.includes(section.toLowerCase()),
+  );
+  if (missing.length) {
+    return `Missing rationale section(s): ${missing.join(", ")}`;
+  }
+
+  return null;
+}
+
+function parseRationaleSections(rationale) {
+  const text = String(rationale ?? "").trim();
+  if (!text) return [];
+
+  const lines = text.split(/\r?\n/);
+  const sections = [];
+  let currentTitle = "Rationale";
+  let currentBody = [];
+  let hasHeading = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^[A-Za-z][A-Za-z0-9 "'()\/-]{2,64}:$/.test(trimmed)) {
+      const body = currentBody.join("\n").trim();
+      if (body) sections.push({ title: currentTitle, body });
+      currentTitle = trimmed.slice(0, -1);
+      currentBody = [];
+      hasHeading = true;
+      continue;
+    }
+    currentBody.push(line);
+  }
+  const trailingBody = currentBody.join("\n").trim();
+  if (trailingBody) {
+    sections.push({ title: currentTitle, body: trailingBody });
+  } else if (hasHeading) {
+    sections.push({ title: currentTitle, body: "No details provided." });
+  }
+
+  return sections.length ? sections : [{ title: "Rationale", body: text }];
+}
+
+function rationaleSectionClass(title) {
+  const normalized = String(title ?? "").toLowerCase();
+  if (normalized.includes("shut down") || normalized.includes("counter")) {
+    return "rationale-section rationale-section--shutdown";
+  }
+  if (normalized.includes("evidence")) {
+    return "rationale-section rationale-section--evidence";
+  }
+  return "rationale-section";
+}
+
+function renderRationale(rationale) {
+  const sections = parseRationaleSections(rationale);
+  if (!sections.length) return '<p class="muted">Not assessed yet</p>';
+
+  return `<div class="rationale-stack">
+    ${sections
+      .map(
+        (section) => `<section class="${rationaleSectionClass(section.title)}">
+          <h4>${escapeHtml(section.title)}</h4>
+          <div class="rationale-text">${escapeHtml(section.body)}</div>
+        </section>`,
+      )
+      .join("")}
+  </div>`;
+}
+
 // === TAB MANAGEMENT ===
 
 function switchTab(tabName) {
@@ -221,7 +307,8 @@ function renderDetail(item) {
     <div class="detail-block">
       <p><strong>Verdict:</strong> <span class="badge ${verdictClass}">${escapeHtml(latest?.verdict ?? "none")}</span></p>
       <p><strong>Publish status:</strong> <span class="badge ${publishStatusClass}">${escapeHtml(publishStatus)}</span></p>
-      <p><strong>Rationale:</strong> ${escapeHtml(latest?.rationale ?? "Not assessed yet")}</p>
+      <p><strong>Rationale:</strong></p>
+      ${renderRationale(latest?.rationale ?? "")}
     </div>
     <div class="detail-block">
       <p><strong>Tags:</strong> ${tags}</p>
@@ -910,9 +997,16 @@ function renderFactCheckForm(claimId) {
         </select>
       </label>
     </div>
-    <label>Rationale * (min 10 chars)
-      <textarea class="fcRationale" rows="3" required minlength="10"
-        placeholder="Explain the verdict with evidence references..."></textarea>
+    <label>Rationale *
+      <textarea class="fcRationale" rows="8" required minlength="40"
+        placeholder="Evidence:
+- Source + specific finding
+
+Why This Is False:
+- Point-by-point mismatch between claim and record
+
+Shut Down False Argument:
+- Direct rebuttal of common counterarguments using cited facts"></textarea>
     </label>
     <label>Note
       <textarea class="fcNote" rows="2" placeholder="Optional note..."></textarea>
@@ -934,7 +1028,8 @@ function renderEditorialForm(claimId, assessment) {
   const verdictClass = verdictBadgeClass(verdict);
   return `<div class="detail-block">
     <p><strong>Fact-Check Verdict:</strong> <span class="badge ${verdictClass}">${escapeHtml(verdict)}</span></p>
-    <p><strong>Rationale:</strong> ${escapeHtml(rationale)}</p>
+    <p><strong>Rationale:</strong></p>
+    ${renderRationale(rationale)}
     <p><strong>Fact-Checker:</strong> ${escapeHtml(reviewer)}</p>
   </div>
   <form class="action-form" data-action="editorial" data-claim-id="${claimId}">
@@ -971,7 +1066,8 @@ function renderFinalizedDetail(claimId, assessment) {
   return `<div class="detail-block">
     <p><strong>Verdict:</strong> <span class="badge ${verdictClass}">${escapeHtml(verdict)}</span></p>
     <p><strong>Status:</strong> <span class="badge ${statusClass}">${escapeHtml(publishStatus)}</span></p>
-    <p><strong>Rationale:</strong> ${escapeHtml(rationale)}</p>
+    <p><strong>Rationale:</strong></p>
+    ${renderRationale(rationale)}
     <p><strong>Reviewer:</strong> ${escapeHtml(reviewer)}</p>
   </div>`;
 }
@@ -1124,6 +1220,10 @@ byId("reviewQueue").addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target.closest(".action-form");
   if (!form) return;
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
 
   const action = form.dataset.action;
   const claimId = form.dataset.claimId;
@@ -1136,6 +1236,15 @@ byId("reviewQueue").addEventListener("submit", async (e) => {
 
     if (action === "fact-check") {
       const contradictionRaw = form.querySelector(".fcContradictionIds").value;
+      const verdict = form.querySelector(".fcVerdict").value;
+      const rationale = form.querySelector(".fcRationale").value.trim();
+      const rationaleError = validateHighRiskRationale(verdict, rationale);
+      if (rationaleError) {
+        statusEl.textContent = `Error: ${rationaleError}`;
+        statusEl.className = "action-status form-status form-status--error";
+        return;
+      }
+
       const contradictionIds = contradictionRaw
         .split(",")
         .map((s) => parseInt(s.trim(), 10))
@@ -1143,8 +1252,8 @@ byId("reviewQueue").addEventListener("submit", async (e) => {
 
       url = `/api/workflow/fact-check/${claimId}`;
       body = {
-        verdict: form.querySelector(".fcVerdict").value,
-        rationale: form.querySelector(".fcRationale").value.trim(),
+        verdict,
+        rationale,
         reviewer_primary: form.querySelector(".fcReviewer").value.trim(),
         source_tier_used: parseInt(form.querySelector(".fcSourceTier").value, 10),
         sources: [],

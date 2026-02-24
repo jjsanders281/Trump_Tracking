@@ -194,6 +194,7 @@ No emotional commentary.
 - Attach primary source URL (video/transcript/post/official record).
 - Draft candidate claim text for atomic review.
 - Add initial topic tags and suggested impact score (1-5).
+- Capture dispute-critical specifics (counts, dates, legal outcomes, procedural details) so Fact-Check can build a robust public rebuttal.
 
 ## Inputs
 - Source policy: `docs/source_tier_policy.md`

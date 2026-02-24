@@ -2,7 +2,7 @@
   "intake_id": "INTAKE-YYYYMMDD-001",
   "claim_id": null,
   "verdict": "misleading",
-  "rationale": "2-5 sentence evidence-based rationale.",
+  "rationale": "Evidence:\n- Source + concrete finding\n\nWhy This Is False:\n- Point-by-point mismatch to verified record\n\nShut Down False Argument:\n- Direct rebuttal of common counterarguments using cited facts",
   "source_tier_used": 1,
   "publish_status": "pending",
   "reviewer_primary": "fact_checker_name",

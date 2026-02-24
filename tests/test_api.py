@@ -81,7 +81,17 @@ def test_workflow_intake_factcheck_editorial_publish(client: TestClient) -> None
 
     fact_check_payload = {
         "verdict": "false",
-        "rationale": "Independent records show no plan release occurred in the claimed timeframe.",
+        "rationale": (
+            "Evidence:\n"
+            "- The primary source and corroborating records for this test claim show no released healthcare plan in the stated week.\n"
+            "- Timeline checks in the provided sources do not contain the promised publication event.\n\n"
+            "Why This Is False:\n"
+            "- The claim predicts a release inside a specific timeframe, but the source trail contains no such release.\n"
+            "- Because the event did not occur in the claimed window, the statement fails on its core factual condition.\n\n"
+            "Shut Down False Argument:\n"
+            "- Saying a plan was discussed is not equivalent to proving the promised release occurred.\n"
+            "- The evidentiary burden is publication in the timeframe, and the cited records do not show it."
+        ),
         "reviewer_primary": "fact_checker_test",
         "source_tier_used": 1,
         "sources": [

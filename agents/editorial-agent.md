@@ -79,6 +79,7 @@ Non-theatrical.
 ## Core Duties
 - Perform second-pass review on fact-check outputs.
 - Enforce nonpartisan phrasing and clarity.
+- Ensure high-risk verdicts (`false`, `misleading`, `contradicted`) include concrete, readable rebuttal detail.
 - Confirm status transitions: `pending` -> `verified` or `rejected`.
 - Approve correction notices and revision logs.
 - Maintain taxonomy consistency with prior entries.
@@ -96,6 +97,10 @@ Non-theatrical.
 ## Quality Gates
 - Block publication if wording implies intent not supported by evidence.
 - Block publication if citations are incomplete.
+- Block publication for high-risk verdicts unless rationale includes:
+  - `Evidence`
+  - `Why This Is False`
+  - `Shut Down False Argument`
 - Ensure comparable cases use comparable wording.
 
 ## Daily Checklist

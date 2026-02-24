@@ -3,11 +3,39 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Verdict = Literal["true", "mixed", "misleading", "false", "unverified", "unfulfilled", "contradicted"]
 PublishStatus = Literal["pending", "verified", "rejected"]
 WorkflowStage = Literal["fact_check", "editorial", "verified", "rejected"]
+
+HIGH_RISK_VERDICTS = {"false", "misleading", "contradicted"}
+HIGH_RISK_RATIONALE_MIN_LENGTH = 240
+HIGH_RISK_RATIONALE_SECTIONS = (
+    "Evidence:",
+    "Why This Is False:",
+    "Shut Down False Argument:",
+)
+
+
+def _validate_high_risk_rationale(verdict: Verdict, rationale: str) -> None:
+    if verdict not in HIGH_RISK_VERDICTS:
+        return
+
+    text = rationale.strip()
+    if len(text) < HIGH_RISK_RATIONALE_MIN_LENGTH:
+        raise ValueError(
+            "High-risk verdict rationale must be detailed (minimum 240 characters) and include sections: "
+            "Evidence:, Why This Is False:, Shut Down False Argument:."
+        )
+
+    normalized = text.lower()
+    missing = [section for section in HIGH_RISK_RATIONALE_SECTIONS if section.lower() not in normalized]
+    if missing:
+        missing_list = ", ".join(missing)
+        raise ValueError(
+            f"High-risk verdict rationale is missing required section(s): {missing_list}"
+        )
 
 
 class StatementCreate(BaseModel):
@@ -47,6 +75,11 @@ class AssessmentCreate(BaseModel):
     publish_status: PublishStatus = "verified"
     verified_at: Optional[datetime] = None
 
+    @model_validator(mode="after")
+    def validate_rationale_detail(self) -> "AssessmentCreate":
+        _validate_high_risk_rationale(self.verdict, self.rationale)
+        return self
+
 
 class ClaimBundleCreate(BaseModel):
     statement: StatementCreate
@@ -70,6 +103,11 @@ class FactCheckSubmission(BaseModel):
     sources: list[SourceCreate] = Field(default_factory=list)
     contradiction_claim_ids: list[int] = Field(default_factory=list)
     note: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_rationale_detail(self) -> "FactCheckSubmission":
+        _validate_high_risk_rationale(self.verdict, self.rationale)
+        return self
 
 
 class EditorialDecision(BaseModel):

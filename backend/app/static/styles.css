@@ -351,6 +351,41 @@ tbody tr:hover {
   padding-left: 1.1rem;
 }
 
+.rationale-stack {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.rationale-section {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  background: #fff;
+}
+
+.rationale-section h4 {
+  margin: 0 0 0.3rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rationale-section--evidence {
+  border-left: 4px solid #266da4;
+}
+
+.rationale-section--shutdown {
+  border-left: 4px solid #8f1d1d;
+  background: #fff7f7;
+}
+
+.rationale-text {
+  white-space: pre-line;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
 /* === TAB BAR === */
 
 .tab-bar {

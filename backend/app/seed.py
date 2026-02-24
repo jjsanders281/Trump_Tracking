@@ -69,7 +69,18 @@ DEMO_ENTRIES = [
         ],
         assessment=AssessmentCreate(
             verdict="contradicted",
-            rationale="[DEMO] Earlier documented statement conflicts with this one.",
+            rationale=(
+                "Evidence:\n"
+                "- [DEMO] Prior statement in this dataset promises a healthcare plan release within two weeks.\n"
+                "- [DEMO] This later statement says no plan release was ever promised.\n"
+                "- [DEMO] Both statements are preserved with primary-source links and timestamps.\n\n"
+                "Why This Is False:\n"
+                "- The later claim denies the existence of a prior promise that is directly documented.\n"
+                "- These two claims cannot both be true at the same time on the same subject.\n\n"
+                "Shut Down False Argument:\n"
+                "- Arguing the promise never happened fails because the earlier quote exists in the record.\n"
+                "- Reframing intent does not remove the contradiction between the plain language of both claims."
+            ),
             reviewer_primary="demo_researcher",
             reviewer_secondary="demo_editor",
             source_tier_used=1,
@@ -109,7 +120,18 @@ DEMO_ENTRIES = [
         ],
         assessment=AssessmentCreate(
             verdict="misleading",
-            rationale="[DEMO] Claim omits key context in official records.",
+            rationale=(
+                "Evidence:\n"
+                "- [DEMO] Official record entry provides the full process language and timeline.\n"
+                "- [DEMO] The quoted statement omits qualifying details that appear in the primary record.\n"
+                "- [DEMO] Corroborating coverage confirms the full context, not just the clipped excerpt.\n\n"
+                "Why This Is False:\n"
+                "- The statement presents a partial fact as if it were the whole record.\n"
+                "- Missing context changes how a reader would interpret the event and outcome.\n\n"
+                "Shut Down False Argument:\n"
+                "- Saying the quote is technically accurate is not enough when omitted context reverses meaning.\n"
+                "- The complete record, shown in the cited source, resolves the claim against the misleading framing."
+            ),
             reviewer_primary="demo_researcher",
             reviewer_secondary="demo_editor",
             source_tier_used=1,
