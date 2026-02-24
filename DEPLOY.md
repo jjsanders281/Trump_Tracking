@@ -36,6 +36,25 @@ After pushing, Railway will:
 - Start the app using the `Procfile`
 - The new version goes live in ~1-2 minutes
 
+### If you changed inbox data files (`data/inbox/current/*.jsonl`)
+Pushing code does **not** automatically insert new claim packets into the production database.
+After deploy is live, run ingestion inside the Railway container:
+
+```bash
+# Single day
+railway ssh sh -lc 'cd /app && PYTHONPATH=/app python3 -m backend.scripts.daily_pipeline --mode current --date 2026-02-23'
+
+# Multiple days
+for d in 2026-02-18 2026-02-19 2026-02-20 2026-02-21 2026-02-23; do
+  railway ssh sh -lc "cd /app && PYTHONPATH=/app python3 -m backend.scripts.daily_pipeline --mode current --date $d"
+done
+```
+
+Why this is required:
+- `railway run ...` executes locally with Railway env vars.
+- `DATABASE_URL` uses an internal hostname (`*.railway.internal`) that only resolves inside Railway.
+- `railway ssh ...` runs in-container, so database inserts succeed.
+
 ### Verify the deploy
 ```bash
 # Check the health endpoint
