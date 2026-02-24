@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+
+Verdict = Literal["true", "mixed", "misleading", "false", "unverified", "unfulfilled", "contradicted"]
+PublishStatus = Literal["pending", "verified", "rejected"]
+WorkflowStage = Literal["fact_check", "editorial", "verified", "rejected"]
 
 
 class StatementCreate(BaseModel):
@@ -22,7 +26,7 @@ class ClaimCreate(BaseModel):
     claim_text: str = Field(min_length=5)
     topic: str
     claim_kind: str = "statement"
-    tags: list[str] = []
+    tags: list[str] = Field(default_factory=list)
 
 
 class SourceCreate(BaseModel):
@@ -35,20 +39,44 @@ class SourceCreate(BaseModel):
 
 
 class AssessmentCreate(BaseModel):
-    verdict: str
+    verdict: Verdict
     rationale: str = Field(min_length=10)
     reviewer_primary: Optional[str] = None
     reviewer_secondary: Optional[str] = None
     source_tier_used: int = Field(default=1, ge=1, le=3)
-    publish_status: str = "verified"
+    publish_status: PublishStatus = "verified"
     verified_at: Optional[datetime] = None
 
 
 class ClaimBundleCreate(BaseModel):
     statement: StatementCreate
     claim: ClaimCreate
-    sources: list[SourceCreate]
+    sources: list[SourceCreate] = Field(default_factory=list)
     assessment: Optional[AssessmentCreate] = None
+
+
+class IntakeClaimCreate(BaseModel):
+    statement: StatementCreate
+    claim: ClaimCreate
+    sources: list[SourceCreate] = Field(default_factory=list)
+    intake_note: Optional[str] = None
+
+
+class FactCheckSubmission(BaseModel):
+    verdict: Verdict
+    rationale: str = Field(min_length=10)
+    reviewer_primary: str = Field(min_length=2)
+    source_tier_used: int = Field(default=1, ge=1, le=3)
+    sources: list[SourceCreate] = Field(default_factory=list)
+    contradiction_claim_ids: list[int] = Field(default_factory=list)
+    note: Optional[str] = None
+
+
+class EditorialDecision(BaseModel):
+    publish_status: Literal["verified", "rejected"]
+    reviewer_secondary: str = Field(min_length=2)
+    verified_at: Optional[datetime] = None
+    note: Optional[str] = None
 
 
 class TagRead(BaseModel):
@@ -72,12 +100,12 @@ class SourceRead(BaseModel):
 
 class AssessmentRead(BaseModel):
     id: int
-    verdict: str
+    verdict: Verdict
     rationale: str
     reviewer_primary: Optional[str]
     reviewer_secondary: Optional[str]
     source_tier_used: int
-    publish_status: str
+    publish_status: PublishStatus
     verified_at: Optional[datetime]
     created_at: datetime
 
@@ -123,6 +151,21 @@ class DashboardSummary(BaseModel):
     contradiction_links: int
     verdict_breakdown: dict[str, int]
     topic_breakdown: dict[str, int]
+
+
+class WorkflowQueueResponse(BaseModel):
+    stage: WorkflowStage
+    total: int
+    limit: int
+    offset: int
+    items: list[ClaimRead]
+
+
+class WorkflowQueueSummary(BaseModel):
+    fact_check: int
+    editorial: int
+    verified: int
+    rejected: int
 
 
 class SearchFilters(BaseModel):

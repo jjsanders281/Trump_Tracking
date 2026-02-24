@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, time
 from typing import Optional
 
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, selectinload
 
 from . import models, schemas
@@ -13,6 +13,15 @@ def _latest_assessment(assessments: list[models.Assessment]) -> Optional[models.
     if not assessments:
         return None
     return sorted(assessments, key=lambda item: (item.verified_at or item.created_at), reverse=True)[0]
+
+
+def _claim_query_with_relations(db: Session):
+    return db.query(models.Claim).options(
+        selectinload(models.Claim.statement),
+        selectinload(models.Claim.assessments),
+        selectinload(models.Claim.sources),
+        selectinload(models.Claim.tags),
+    )
 
 
 def _serialize_claim(claim: models.Claim) -> schemas.ClaimRead:
@@ -31,6 +40,10 @@ def _serialize_claim(claim: models.Claim) -> schemas.ClaimRead:
     )
 
 
+def _get_claim_model(db: Session, claim_id: int) -> Optional[models.Claim]:
+    return _claim_query_with_relations(db).filter(models.Claim.id == claim_id).first()
+
+
 def _get_or_create_tags(db: Session, tag_names: list[str]) -> list[models.Tag]:
     tag_objects: list[models.Tag] = []
     for raw_name in tag_names:
@@ -46,6 +59,23 @@ def _get_or_create_tags(db: Session, tag_names: list[str]) -> list[models.Tag]:
         db.flush()
         tag_objects.append(created)
     return tag_objects
+
+
+def _record_revision(
+    db: Session,
+    entity_type: str,
+    entity_id: int,
+    changed_by: str,
+    change_summary: str,
+) -> None:
+    db.add(
+        models.Revision(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            changed_by=changed_by,
+            change_summary=change_summary,
+        )
+    )
 
 
 def create_claim_bundle(db: Session, payload: schemas.ClaimBundleCreate) -> models.Claim:
@@ -87,6 +117,10 @@ def create_claim_bundle(db: Session, payload: schemas.ClaimBundleCreate) -> mode
         )
 
     if payload.assessment:
+        verified_at = payload.assessment.verified_at
+        if payload.assessment.publish_status == "verified" and verified_at is None:
+            verified_at = datetime.utcnow()
+
         db.add(
             models.Assessment(
                 claim_id=claim.id,
@@ -96,37 +130,197 @@ def create_claim_bundle(db: Session, payload: schemas.ClaimBundleCreate) -> mode
                 reviewer_secondary=payload.assessment.reviewer_secondary,
                 source_tier_used=payload.assessment.source_tier_used,
                 publish_status=payload.assessment.publish_status,
-                verified_at=payload.assessment.verified_at,
+                verified_at=verified_at,
             )
+        )
+        _record_revision(
+            db,
+            entity_type="claim",
+            entity_id=claim.id,
+            changed_by=payload.assessment.reviewer_primary or "system",
+            change_summary=(
+                f"Claim created with assessment status={payload.assessment.publish_status} "
+                f"verdict={payload.assessment.verdict}"
+            ),
+        )
+    else:
+        _record_revision(
+            db,
+            entity_type="claim",
+            entity_id=claim.id,
+            changed_by="research_agent",
+            change_summary="Claim intake created without assessment",
         )
 
     db.commit()
 
-    return (
-        db.query(models.Claim)
-        .options(
-            selectinload(models.Claim.statement),
-            selectinload(models.Claim.assessments),
-            selectinload(models.Claim.sources),
-            selectinload(models.Claim.tags),
-        )
-        .filter(models.Claim.id == claim.id)
-        .one()
+    return _claim_query_with_relations(db).filter(models.Claim.id == claim.id).one()
+
+
+def create_intake_claim(db: Session, payload: schemas.IntakeClaimCreate) -> schemas.ClaimRead:
+    bundle = schemas.ClaimBundleCreate(
+        statement=payload.statement,
+        claim=payload.claim,
+        sources=payload.sources,
+        assessment=None,
     )
+    claim = create_claim_bundle(db, bundle)
+
+    if payload.intake_note:
+        _record_revision(
+            db,
+            entity_type="claim",
+            entity_id=claim.id,
+            changed_by="research_agent",
+            change_summary=f"Intake note: {payload.intake_note[:600]}",
+        )
+        db.commit()
+
+    result = get_claim(db, claim.id)
+    return result  # type: ignore[return-value]
+
+
+def submit_fact_check(
+    db: Session,
+    claim_id: int,
+    payload: schemas.FactCheckSubmission,
+) -> schemas.ClaimRead:
+    claim = _get_claim_model(db, claim_id)
+    if claim is None:
+        raise ValueError("Claim not found")
+
+    latest = _latest_assessment(claim.assessments)
+    if latest and latest.publish_status in {"verified", "rejected"}:
+        raise ValueError("Claim workflow is finalized; reopen flow before new fact-check submission")
+
+    if latest and latest.publish_status == "pending":
+        latest.verdict = payload.verdict
+        latest.rationale = payload.rationale
+        latest.reviewer_primary = payload.reviewer_primary
+        latest.source_tier_used = payload.source_tier_used
+        latest.verified_at = None
+        latest.reviewer_secondary = None
+    else:
+        db.add(
+            models.Assessment(
+                claim_id=claim.id,
+                verdict=payload.verdict,
+                rationale=payload.rationale,
+                reviewer_primary=payload.reviewer_primary,
+                source_tier_used=payload.source_tier_used,
+                publish_status="pending",
+                verified_at=None,
+            )
+        )
+
+    existing_source_urls = {source.url for source in claim.sources}
+    for source in payload.sources:
+        if source.url in existing_source_urls:
+            continue
+        db.add(
+            models.Source(
+                claim_id=claim.id,
+                publisher=source.publisher,
+                url=source.url,
+                source_tier=source.source_tier,
+                is_primary=source.is_primary,
+                archived_url=source.archived_url,
+                notes=source.notes,
+            )
+        )
+
+    contradiction_ids = sorted({cid for cid in payload.contradiction_claim_ids if cid != claim.id})
+    if contradiction_ids:
+        existing_claim_ids = {
+            row[0]
+            for row in db.query(models.Claim.id)
+            .filter(models.Claim.id.in_(contradiction_ids))
+            .all()
+        }
+        missing_ids = [cid for cid in contradiction_ids if cid not in existing_claim_ids]
+        if missing_ids:
+            raise ValueError(f"Invalid contradiction claim IDs: {missing_ids}")
+
+        existing_pairs = {
+            (row.claim_id, row.contradicts_claim_id)
+            for row in db.query(models.Contradiction)
+            .filter(
+                models.Contradiction.claim_id == claim.id,
+                models.Contradiction.contradicts_claim_id.in_(contradiction_ids),
+            )
+            .all()
+        }
+        for target_id in contradiction_ids:
+            if (claim.id, target_id) in existing_pairs:
+                continue
+            db.add(
+                models.Contradiction(
+                    claim_id=claim.id,
+                    contradicts_claim_id=target_id,
+                    note=payload.note,
+                )
+            )
+
+    summary = f"Fact-check submitted: verdict={payload.verdict}, status=pending"
+    if payload.note:
+        summary = f"{summary}. Note: {payload.note[:500]}"
+
+    _record_revision(
+        db,
+        entity_type="claim",
+        entity_id=claim.id,
+        changed_by=payload.reviewer_primary,
+        change_summary=summary,
+    )
+
+    db.commit()
+
+    result = get_claim(db, claim.id)
+    return result  # type: ignore[return-value]
+
+
+def submit_editorial_decision(
+    db: Session,
+    claim_id: int,
+    payload: schemas.EditorialDecision,
+) -> schemas.ClaimRead:
+    claim = _get_claim_model(db, claim_id)
+    if claim is None:
+        raise ValueError("Claim not found")
+
+    pending_assessments = [item for item in claim.assessments if item.publish_status == "pending"]
+    if not pending_assessments:
+        raise ValueError("No pending assessment found for this claim")
+
+    latest_pending = sorted(pending_assessments, key=lambda item: item.id, reverse=True)[0]
+    latest_pending.publish_status = payload.publish_status
+    latest_pending.reviewer_secondary = payload.reviewer_secondary
+
+    if payload.publish_status == "verified":
+        latest_pending.verified_at = payload.verified_at or datetime.utcnow()
+    else:
+        latest_pending.verified_at = None
+
+    summary = f"Editorial decision: {payload.publish_status}"
+    if payload.note:
+        summary = f"{summary}. Note: {payload.note[:500]}"
+
+    _record_revision(
+        db,
+        entity_type="claim",
+        entity_id=claim.id,
+        changed_by=payload.reviewer_secondary,
+        change_summary=summary,
+    )
+
+    db.commit()
+
+    result = get_claim(db, claim.id)
+    return result  # type: ignore[return-value]
 
 
 def get_claim(db: Session, claim_id: int) -> Optional[schemas.ClaimRead]:
-    claim = (
-        db.query(models.Claim)
-        .options(
-            selectinload(models.Claim.statement),
-            selectinload(models.Claim.assessments),
-            selectinload(models.Claim.sources),
-            selectinload(models.Claim.tags),
-        )
-        .filter(models.Claim.id == claim_id)
-        .first()
-    )
+    claim = _get_claim_model(db, claim_id)
     if not claim:
         return None
     return _serialize_claim(claim)
@@ -195,17 +389,7 @@ def search_claims(
         )
         ordered_ids = [row[0] for row in id_rows]
         if ordered_ids:
-            claims_unordered = (
-                db.query(models.Claim)
-                .options(
-                    selectinload(models.Claim.statement),
-                    selectinload(models.Claim.assessments),
-                    selectinload(models.Claim.sources),
-                    selectinload(models.Claim.tags),
-                )
-                .filter(models.Claim.id.in_(ordered_ids))
-                .all()
-            )
+            claims_unordered = _claim_query_with_relations(db).filter(models.Claim.id.in_(ordered_ids)).all()
             id_order = {cid: idx for idx, cid in enumerate(ordered_ids)}
             claims = sorted(claims_unordered, key=lambda c: id_order[c.id])
         else:
@@ -221,6 +405,89 @@ def search_claims(
     items = [_serialize_claim(claim) for claim in claims]
 
     return schemas.ClaimSearchResponse(total=total, limit=limit, offset=offset, items=items)
+
+
+def _latest_assessment_subquery(db: Session):
+    return (
+        db.query(
+            models.Assessment.claim_id.label("claim_id"),
+            func.max(models.Assessment.id).label("assessment_id"),
+        )
+        .group_by(models.Assessment.claim_id)
+        .subquery()
+    )
+
+
+def _workflow_stage_filter(stage: schemas.WorkflowStage, latest_assessment_subq):
+    if stage == "fact_check":
+        return or_(
+            latest_assessment_subq.c.assessment_id.is_(None),
+            and_(
+                models.Assessment.publish_status == "pending",
+                models.Assessment.reviewer_primary.is_(None),
+            ),
+        )
+    if stage == "editorial":
+        return and_(
+            latest_assessment_subq.c.assessment_id.is_not(None),
+            models.Assessment.publish_status == "pending",
+            models.Assessment.reviewer_primary.is_not(None),
+        )
+    if stage == "verified":
+        return models.Assessment.publish_status == "verified"
+    if stage == "rejected":
+        return models.Assessment.publish_status == "rejected"
+    raise ValueError(f"Unsupported workflow stage: {stage}")
+
+
+def workflow_queue(
+    db: Session,
+    stage: schemas.WorkflowStage,
+    limit: int,
+    offset: int,
+) -> schemas.WorkflowQueueResponse:
+    latest_assessment_subq = _latest_assessment_subquery(db)
+
+    id_query = (
+        db.query(models.Claim.id, models.Statement.occurred_at)
+        .join(models.Statement)
+        .outerjoin(latest_assessment_subq, latest_assessment_subq.c.claim_id == models.Claim.id)
+        .outerjoin(models.Assessment, models.Assessment.id == latest_assessment_subq.c.assessment_id)
+        .filter(_workflow_stage_filter(stage, latest_assessment_subq))
+    )
+
+    total = id_query.count()
+    id_rows = (
+        id_query.order_by(models.Statement.occurred_at.desc(), models.Claim.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    ordered_ids = [row[0] for row in id_rows]
+
+    if ordered_ids:
+        claims_unordered = _claim_query_with_relations(db).filter(models.Claim.id.in_(ordered_ids)).all()
+        id_order = {cid: idx for idx, cid in enumerate(ordered_ids)}
+        claims = sorted(claims_unordered, key=lambda c: id_order[c.id])
+    else:
+        claims = []
+
+    return schemas.WorkflowQueueResponse(
+        stage=stage,
+        total=total,
+        limit=limit,
+        offset=offset,
+        items=[_serialize_claim(claim) for claim in claims],
+    )
+
+
+def workflow_queue_summary(db: Session) -> schemas.WorkflowQueueSummary:
+    return schemas.WorkflowQueueSummary(
+        fact_check=workflow_queue(db, stage="fact_check", limit=1, offset=0).total,
+        editorial=workflow_queue(db, stage="editorial", limit=1, offset=0).total,
+        verified=workflow_queue(db, stage="verified", limit=1, offset=0).total,
+        rejected=workflow_queue(db, stage="rejected", limit=1, offset=0).total,
+    )
 
 
 def dashboard_summary(db: Session) -> schemas.DashboardSummary:

@@ -47,6 +47,57 @@ def dashboard_summary(db: Session = Depends(get_db)) -> schemas.DashboardSummary
     return crud.dashboard_summary(db)
 
 
+@app.get("/api/workflow/summary", response_model=schemas.WorkflowQueueSummary)
+def workflow_summary(db: Session = Depends(get_db)) -> schemas.WorkflowQueueSummary:
+    return crud.workflow_queue_summary(db)
+
+
+@app.get("/api/workflow/queues/{stage}", response_model=schemas.WorkflowQueueResponse)
+def workflow_queue(
+    stage: schemas.WorkflowStage,
+    limit: int = Query(default=25, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> schemas.WorkflowQueueResponse:
+    return crud.workflow_queue(db=db, stage=stage, limit=limit, offset=offset)
+
+
+@app.post("/api/workflow/intake", response_model=schemas.ClaimRead)
+def create_intake_claim(
+    payload: schemas.IntakeClaimCreate,
+    db: Session = Depends(get_db),
+) -> schemas.ClaimRead:
+    return crud.create_intake_claim(db, payload)
+
+
+@app.post("/api/workflow/fact-check/{claim_id}", response_model=schemas.ClaimRead)
+def submit_fact_check(
+    claim_id: int,
+    payload: schemas.FactCheckSubmission,
+    db: Session = Depends(get_db),
+) -> schemas.ClaimRead:
+    try:
+        return crud.submit_fact_check(db, claim_id, payload)
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 404 if "not found" in detail.lower() else 400
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+
+@app.post("/api/workflow/editorial/{claim_id}", response_model=schemas.ClaimRead)
+def submit_editorial_decision(
+    claim_id: int,
+    payload: schemas.EditorialDecision,
+    db: Session = Depends(get_db),
+) -> schemas.ClaimRead:
+    try:
+        return crud.submit_editorial_decision(db, claim_id, payload)
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 404 if "not found" in detail.lower() else 400
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+
 @app.get("/api/claims/search", response_model=schemas.ClaimSearchResponse)
 def search_claims(
     q: Optional[str] = Query(default=None),
