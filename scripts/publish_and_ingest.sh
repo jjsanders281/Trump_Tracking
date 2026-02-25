@@ -60,7 +60,7 @@ wait_for_remote_file() {
   local attempt
 
   for attempt in $(seq 1 "${MAX_WAIT_ATTEMPTS}"); do
-    if railway ssh sh -lc "test -f ${remote_file}" >/dev/null 2>&1; then
+    if railway ssh "test -f ${remote_file}" >/dev/null 2>&1; then
       return 0
     fi
     echo "Waiting for deploy to expose ${remote_file} (${attempt}/${MAX_WAIT_ATTEMPTS})..."
@@ -121,7 +121,7 @@ while IFS= read -r day; do
 
   wait_for_remote_file "${day}"
   echo "Ingesting ${day} in Railway..."
-  railway ssh sh -lc "cd /app && PYTHONPATH=/app python3 -m backend.scripts.daily_pipeline --mode current --date ${day}"
+  railway ssh "cd /app && PYTHONPATH=/app python3 -m backend.scripts.daily_pipeline --mode current --date ${day}"
 done <<< "${changed_dates}"
 
 if [[ "${DRY_RUN}" == "1" ]]; then
