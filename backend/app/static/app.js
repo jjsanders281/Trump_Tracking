@@ -234,6 +234,17 @@ for (const btn of document.querySelectorAll("[data-home-nav]")) {
   });
 }
 
+const homeSpecialEventOpenSearchBtn = byId("homeSpecialEventOpenSearch");
+if (homeSpecialEventOpenSearchBtn) {
+  homeSpecialEventOpenSearchBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    const startDate = homeSpecialEventOpenSearchBtn.dataset.startDate;
+    const endDate = homeSpecialEventOpenSearchBtn.dataset.endDate;
+    if (!startDate || !endDate) return;
+    navigateToSearchForDateRange(startDate, endDate, false);
+  });
+}
+
 // === SEARCH (existing logic, unchanged) ===
 
 function setTextIfPresent(id, value) {
@@ -334,6 +345,15 @@ async function loadSummary() {
 async function loadHomeHighlights() {
   const newsList = byId("homeNewsList");
   const didYouKnowList = byId("homeDidYouKnowList");
+  const featuredBoxTitle = byId("homeFeaturedBoxTitle");
+  const featuredEventCard = byId("homeSpecialEventCard");
+  const featuredEventTitle = byId("homeSpecialEventTitle");
+  const featuredEventMeta = byId("homeSpecialEventMeta");
+  const featuredEventBlurb = byId("homeSpecialEventBlurb");
+  const featuredEventSource = byId("homeSpecialEventSource");
+  const featuredEventClaims = byId("homeSpecialEventClaims");
+  const featuredEventFooter = byId("homeSpecialEventFooter");
+  const featuredFallback = byId("homeFeaturedFallback");
   const featuredTitle = byId("homeFeaturedTitle");
   const featuredSummary = byId("homeFeaturedSummary");
   const featuredMeta = byId("homeFeaturedMeta");
@@ -345,11 +365,84 @@ async function loadHomeHighlights() {
   ) return;
 
   try {
-    const res = await fetch("/api/claims/search?verified_only=true&limit=30");
+    const [res, featuredEventRes] = await Promise.all([
+      fetch("/api/claims/search?verified_only=true&limit=30"),
+      fetch("/api/events/featured"),
+    ]);
+
     if (!res.ok) return;
     const payload = await res.json();
     const items = payload.items || [];
     if (!items.length) return;
+
+    let featuredEvent = null;
+    if (featuredEventRes.ok) {
+      const featuredEventPayload = await featuredEventRes.json();
+      featuredEvent = featuredEventPayload?.event || null;
+    }
+
+    const shouldShowEvent = (
+      featuredEvent
+      && featuredEventCard
+      && featuredEventTitle
+      && featuredEventMeta
+      && featuredEventBlurb
+      && featuredEventSource
+      && featuredEventClaims
+      && featuredEventFooter
+      && featuredFallback
+      && featuredBoxTitle
+    );
+
+    if (shouldShowEvent) {
+      featuredBoxTitle.textContent = `Featured Event: ${featuredEvent.title}`;
+      featuredFallback.hidden = true;
+      featuredEventCard.hidden = false;
+
+      featuredEventTitle.textContent = featuredEvent.title;
+      featuredEventMeta.textContent = `${featuredEvent.occurred_on} · ${featuredEvent.total_claims} tracked claim(s)`;
+      featuredEventBlurb.textContent = featuredEvent.editorial_blurb;
+      if (featuredEvent.source_url) {
+        const sourceLabel = featuredEvent.source_label || "Source";
+        featuredEventSource.innerHTML = `<strong>Event source:</strong> <a href="${escapeHtml(featuredEvent.source_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceLabel)}</a>`;
+      } else {
+        featuredEventSource.textContent = "";
+      }
+
+      const eventClaims = featuredEvent.claims || [];
+      if (eventClaims.length) {
+        featuredEventClaims.innerHTML = eventClaims
+          .map((claim) => {
+            const verdictLabel = claim.verdict || "unreviewed";
+            const statusLabel = claim.publish_status || "pending";
+            return `<li>
+              <strong>${escapeHtml(fmtDate(claim.occurred_at))}</strong>:
+              <a class="wiki-inline-link" href="${buildClaimUrl(claim.id)}">${escapeHtml(clipText(claim.claim_text, 180))}</a>
+              <span class="badge ${verdictBadgeClass(verdictLabel)}">${escapeHtml(verdictLabel)}</span>
+              <span class="badge ${verdictBadgeClass(statusLabel)}">${escapeHtml(statusLabel)}</span>
+            </li>`;
+          })
+          .join("");
+      } else {
+        featuredEventClaims.innerHTML = "<li class=\"muted\">No event-linked claims are logged yet.</li>";
+      }
+
+      featuredEventFooter.textContent = `Verified lies: ${featuredEvent.verified_lie_count} · Under review: ${featuredEvent.under_review_count}`;
+      if (homeSpecialEventOpenSearchBtn) {
+        homeSpecialEventOpenSearchBtn.disabled = false;
+        homeSpecialEventOpenSearchBtn.dataset.startDate = featuredEvent.date_range_start;
+        homeSpecialEventOpenSearchBtn.dataset.endDate = featuredEvent.date_range_end;
+      }
+    } else if (featuredBoxTitle && featuredFallback && featuredEventCard) {
+      featuredBoxTitle.textContent = "From Today’s Featured File";
+      featuredFallback.hidden = false;
+      featuredEventCard.hidden = true;
+      if (homeSpecialEventOpenSearchBtn) {
+        homeSpecialEventOpenSearchBtn.disabled = true;
+        delete homeSpecialEventOpenSearchBtn.dataset.startDate;
+        delete homeSpecialEventOpenSearchBtn.dataset.endDate;
+      }
+    }
 
     const featured = items[0];
     const latest = items.slice(1, 5);
@@ -1330,14 +1423,18 @@ for (const containerId of ["verdictBars", "topicBars"]) {
 }
 
 function navigateToSearchForDate(dateValue) {
+  navigateToSearchForDateRange(dateValue, dateValue, false);
+}
+
+function navigateToSearchForDateRange(startDate, endDate, verifiedOnly = false) {
   clearHashRoute();
   byId("q").value = "";
   byId("topic").value = "";
   byId("verdict").value = "";
-  byId("start_date").value = dateValue;
-  byId("end_date").value = dateValue;
+  byId("start_date").value = startDate;
+  byId("end_date").value = endDate;
   byId("min_impact").value = "";
-  byId("verified_only").checked = false;
+  byId("verified_only").checked = Boolean(verifiedOnly);
   switchTab("search");
   runSearch();
 }

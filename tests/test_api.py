@@ -184,6 +184,22 @@ def test_dashboard_summary_includes_lie_tracker(client: TestClient) -> None:
     assert lie_tracker["campaign_launch_date"] == "2015-06-16"
 
 
+def test_featured_event_endpoint(client: TestClient) -> None:
+    response = client.get("/api/events/featured")
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert "event" in payload
+    event = payload["event"]
+    assert event is not None
+    assert event["slug"] == "2026-state-of-the-union"
+    assert event["date_range_start"] == "2026-02-24"
+    assert event["date_range_end"] == "2026-02-24"
+    assert isinstance(event["editorial_blurb"], str)
+    assert isinstance(event["claims"], list)
+    assert event["total_claims"] == len(event["claims"])
+
+
 def test_research_coverage_summary_endpoint(client: TestClient) -> None:
     response = client.get("/api/research/coverage")
     assert response.status_code == 200

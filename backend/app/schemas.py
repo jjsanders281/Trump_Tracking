@@ -276,6 +276,35 @@ class DashboardSummary(BaseModel):
     topic_breakdown: dict[str, int]
 
 
+class FeaturedEventClaimRead(BaseModel):
+    id: int
+    claim_text: str
+    topic: str
+    canonical_topic_slug: str
+    occurred_at: datetime
+    verdict: Optional[Verdict]
+    publish_status: Optional[PublishStatus]
+
+
+class FeaturedEventRead(BaseModel):
+    slug: str
+    title: str
+    occurred_on: date
+    date_range_start: date
+    date_range_end: date
+    editorial_blurb: str
+    source_label: Optional[str] = None
+    source_url: Optional[str] = None
+    total_claims: int = Field(ge=0)
+    verified_lie_count: int = Field(ge=0)
+    under_review_count: int = Field(ge=0)
+    claims: list[FeaturedEventClaimRead]
+
+
+class FeaturedEventResponse(BaseModel):
+    event: Optional[FeaturedEventRead] = None
+
+
 class WorkflowQueueResponse(BaseModel):
     stage: WorkflowStage
     total: int

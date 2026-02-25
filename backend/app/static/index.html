@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trump Tracking Research Database</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20260224203157" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260225125540" />
   </head>
   <body>
     <header class="wiki-masthead hero">
@@ -58,8 +58,24 @@
 
         <div class="wiki-mainpage__grid">
           <section class="mp-box mp-box--featured">
-            <h2 class="mp-box__title">From Today’s Featured File</h2>
-            <article class="mp-featured">
+            <h2 class="mp-box__title" id="homeFeaturedBoxTitle">From Today’s Featured File</h2>
+            <article class="mp-special-event" id="homeSpecialEventCard" hidden>
+              <h3 id="homeSpecialEventTitle">Special event placeholder</h3>
+              <p class="mp-special-event__meta" id="homeSpecialEventMeta"></p>
+              <p id="homeSpecialEventBlurb">
+                Featured-event editorial context will appear here.
+              </p>
+              <p class="mp-special-event__source" id="homeSpecialEventSource"></p>
+              <ul id="homeSpecialEventClaims">
+                <li>Event-linked claims will appear here.</li>
+              </ul>
+              <p class="mp-special-event__footer" id="homeSpecialEventFooter"></p>
+              <button class="wiki-link-btn wiki-link-btn--subtle" id="homeSpecialEventOpenSearch">
+                Open Event Claims In Search
+              </button>
+            </article>
+
+            <article class="mp-featured" id="homeFeaturedFallback">
               <h3 id="homeFeaturedTitle">Featured claim placeholder</h3>
               <p id="homeFeaturedSummary">
                 A high-impact claim with its source chain, verdict rationale, and contradiction
@@ -579,6 +595,6 @@
       </div>
     </main>
 
-    <script src="/static/app.js?v=20260224203157" type="module"></script>
+    <script src="/static/app.js?v=20260225125540" type="module"></script>
   </body>
 </html>

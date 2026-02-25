@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 import re
-from typing import Optional
+from typing import Optional, cast
 
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, selectinload
@@ -51,6 +51,23 @@ _SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 INBOX_DIR = REPO_ROOT / "data" / "inbox"
+FEATURED_EVENT_CONFIG: dict[str, object] = {
+    "slug": "2026-state-of-the-union",
+    "title": "2026 State Of The Union Address",
+    "occurred_on": date(2026, 2, 24),
+    "date_range_start": date(2026, 2, 24),
+    "date_range_end": date(2026, 2, 24),
+    "show_from": date(2026, 2, 24),
+    "show_until": date(2099, 12, 31),
+    "editorial_blurb": (
+        "This special-event file tracks claims made during the State of the Union address, "
+        "with each claim linked to direct records and written rebuttal details."
+    ),
+    "source_label": "Official White House transcript and event recording",
+    "source_url": "https://www.whitehouse.gov/",
+    "required_tags": ("state-of-the-union-2026", "sotu-2026"),
+    "venue_keywords": ("state of the union",),
+}
 
 
 def _slugify(value: str) -> str:
@@ -1299,4 +1316,89 @@ def dashboard_summary(db: Session) -> schemas.DashboardSummary:
         ),
         verdict_breakdown={key: value for key, value in verdict_rows},
         topic_breakdown={key: value for key, value in topic_rows},
+    )
+
+
+def _serialize_featured_event_claim(claim: models.Claim) -> schemas.FeaturedEventClaimRead:
+    latest = _latest_assessment(claim.assessments)
+    return schemas.FeaturedEventClaimRead(
+        id=claim.id,
+        claim_text=claim.claim_text,
+        topic=claim.topic,
+        canonical_topic_slug=_canonical_topic_slug(claim),
+        occurred_at=claim.statement.occurred_at,
+        verdict=cast(Optional[schemas.Verdict], latest.verdict if latest else None),
+        publish_status=cast(Optional[schemas.PublishStatus], latest.publish_status if latest else None),
+    )
+
+
+def featured_event(db: Session) -> schemas.FeaturedEventResponse:
+    today = datetime.utcnow().date()
+    show_from = cast(date, FEATURED_EVENT_CONFIG["show_from"])
+    show_until = cast(date, FEATURED_EVENT_CONFIG["show_until"])
+    if today < show_from or today > show_until:
+        return schemas.FeaturedEventResponse(event=None)
+
+    date_range_start = cast(date, FEATURED_EVENT_CONFIG["date_range_start"])
+    date_range_end = cast(date, FEATURED_EVENT_CONFIG["date_range_end"])
+    required_tags = tuple(
+        tag.strip().lower()
+        for tag in cast(tuple[str, ...], FEATURED_EVENT_CONFIG.get("required_tags", ()))
+        if tag.strip()
+    )
+    venue_keywords = tuple(
+        token.strip()
+        for token in cast(tuple[str, ...], FEATURED_EVENT_CONFIG.get("venue_keywords", ()))
+        if token.strip()
+    )
+
+    base_query = (
+        _claim_query_with_relations(db)
+        .join(models.Statement)
+        .filter(models.Statement.occurred_at >= datetime.combine(date_range_start, time.min))
+        .filter(models.Statement.occurred_at <= datetime.combine(date_range_end, time.max))
+    )
+
+    query = base_query
+    event_filters = []
+    if required_tags:
+        event_filters.append(models.Claim.tags.any(models.Tag.name.in_(required_tags)))
+    if venue_keywords:
+        event_filters.append(or_(*[models.Statement.venue.ilike(f"%{keyword}%") for keyword in venue_keywords]))
+    if event_filters:
+        query = query.filter(or_(*event_filters))
+
+    claims = query.order_by(models.Statement.occurred_at.asc(), models.Claim.id.asc()).all()
+    if not claims and event_filters:
+        # Fallback to date-range claims so the event panel still shows newly ingested
+        # records before event tags are fully normalized.
+        claims = base_query.order_by(models.Statement.occurred_at.asc(), models.Claim.id.asc()).all()
+
+    serialized_claims = [_serialize_featured_event_claim(claim) for claim in claims]
+
+    verified_lie_count = 0
+    under_review_count = 0
+    for claim in claims:
+        latest = _latest_assessment(claim.assessments)
+        if latest is None or latest.publish_status == "pending":
+            under_review_count += 1
+            continue
+        if latest.publish_status == "verified" and latest.verdict in LIE_VERDICTS:
+            verified_lie_count += 1
+
+    return schemas.FeaturedEventResponse(
+        event=schemas.FeaturedEventRead(
+            slug=cast(str, FEATURED_EVENT_CONFIG["slug"]),
+            title=cast(str, FEATURED_EVENT_CONFIG["title"]),
+            occurred_on=cast(date, FEATURED_EVENT_CONFIG["occurred_on"]),
+            date_range_start=date_range_start,
+            date_range_end=date_range_end,
+            editorial_blurb=cast(str, FEATURED_EVENT_CONFIG["editorial_blurb"]),
+            source_label=cast(Optional[str], FEATURED_EVENT_CONFIG.get("source_label")),
+            source_url=cast(Optional[str], FEATURED_EVENT_CONFIG.get("source_url")),
+            total_claims=len(serialized_claims),
+            verified_lie_count=verified_lie_count,
+            under_review_count=under_review_count,
+            claims=serialized_claims,
+        )
     )

@@ -558,6 +558,49 @@ tbody tr:hover {
   font-size: var(--text-md);
 }
 
+.mp-special-event {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.mp-special-event h3 {
+  margin: 0;
+  font-family: "Noto Serif", Georgia, serif;
+  font-size: var(--text-lg);
+}
+
+.mp-special-event__meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.mp-special-event__source {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.mp-special-event ul {
+  margin: 0;
+  padding: 0.65rem 0.8rem 0.65rem 1.4rem;
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  max-height: 17rem;
+  overflow: auto;
+}
+
+.mp-special-event__footer {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+#homeSpecialEventOpenSearch {
+  justify-self: start;
+}
+
 .mp-on-this-day__date {
   margin: 0 0 0.45rem;
   font-size: var(--text-md);

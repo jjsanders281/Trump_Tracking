@@ -48,6 +48,11 @@ def dashboard_summary(db: Session = Depends(get_db)) -> schemas.DashboardSummary
     return crud.dashboard_summary(db)
 
 
+@app.get("/api/events/featured", response_model=schemas.FeaturedEventResponse)
+def featured_event(db: Session = Depends(get_db)) -> schemas.FeaturedEventResponse:
+    return crud.featured_event(db)
+
+
 @app.get("/api/research/coverage", response_model=schemas.ResearchCoverageSummaryRead)
 def research_coverage_summary(
     start_date: Optional[str] = Query(default=None),
