@@ -10,6 +10,34 @@ The app runs on **Railway**. There are two ways to deploy:
 1. **Git push to `main`** (preferred) — Railway auto-deploys on every push to the `main` branch.
 2. **Railway CLI** — Pushes directly from the working directory without a git commit.
 
+## Recommended: One-Command Publish Pipeline
+
+Use this as the default workflow:
+
+```bash
+make publish
+```
+
+What it does:
+- Pushes current `HEAD` to `origin/main`
+- Detects changed `data/inbox/current/YYYY-MM-DD.jsonl` files vs `origin/main`
+- Waits for those files to appear in the Railway container
+- Runs ingestion in-container for each changed date
+- Runs a production health check
+
+Optional controls:
+
+```bash
+# Force a specific date list (space or comma separated)
+make publish DATES="2025-10-01 2025-10-02"
+
+# Ingest only (no git push)
+make publish DATES="2025-10-01" SKIP_PUSH=1
+
+# Preview actions without push or Railway writes
+make publish DATES="2025-10-01" DRY_RUN=1
+```
+
 ---
 
 ## Method 1: Git Push (Preferred)
@@ -37,8 +65,9 @@ After pushing, Railway will:
 - The new version goes live in ~1-2 minutes
 
 ### If you changed inbox data files (`data/inbox/current/*.jsonl`)
-Pushing code does **not** automatically insert new claim packets into the production database.
-After deploy is live, run ingestion inside the Railway container:
+Use `make publish` so ingestion runs automatically after push.
+
+Manual fallback (if needed): pushing code does **not** automatically insert new claim packets into the production database. After deploy is live, run ingestion inside the Railway container:
 
 ```bash
 # Single day
@@ -155,6 +184,7 @@ railway status
 
 | Task | Command |
 |------|---------|
+| Push + auto-ingest changed day files | `make publish` |
 | Deploy via git | `git push origin main` |
 | Deploy via CLI | `railway up --detach` |
 | Bump static cache key | `make bust-assets` |

@@ -1,4 +1,4 @@
-.PHONY: dev test lint format seed ingest ingest-backlog bust-assets deploy-prep
+.PHONY: dev test lint format seed ingest ingest-backlog bust-assets deploy-prep publish
 
 dev:
 	python3 -m uvicorn backend.app.main:app --reload --reload-dir backend --reload-exclude ".venv/*"
@@ -26,3 +26,6 @@ bust-assets:
 
 deploy-prep: lint test bust-assets
 	@echo "Deploy prep complete. Commit and push to main to trigger Railway deploy."
+
+publish:
+	DATES="$(DATES)" SKIP_PUSH="$(SKIP_PUSH)" ./scripts/publish_and_ingest.sh
